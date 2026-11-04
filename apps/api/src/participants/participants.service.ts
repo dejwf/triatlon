@@ -8,7 +8,10 @@ import {
   AgeGroups,
   parseImportRow,
   resolveCategory,
+  type CheckInStatus,
   type ImportResult,
+  type OnSiteRegistrationInput,
+  type OnSiteRegistrationResult,
   type ImportRowResult,
   type ParticipantDto,
   type ParticipantInput,
@@ -127,6 +130,94 @@ export class ParticipantsService {
     // Změna stavu (nepřítomen, diskvalifikace) mění výsledky.
     this.realtime.resultsChanged(raceId, [previousCategory, updated.categoryId]);
     return updated;
+  }
+
+  /** Check-in na startu: přítomen / nepřítomen (organizátor startu nebo admin). */
+  async setStatus(
+    user: RequestUser,
+    raceId: string,
+    id: string,
+    status: CheckInStatus,
+  ): Promise<ParticipantDto> {
+    await this.races.assertStartAccess(user, raceId);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const before = await this.find(tx, raceId, id);
+      if (before.status === 'disqualified') {
+        throw new ConflictException('Závodník je diskvalifikován — stav může změnit jen admin.');
+      }
+      if (before.status === status) return toDto(before);
+      const p = await tx.participant.update({ where: { id }, data: { status } });
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'check_in',
+          entity: 'participant',
+          entityId: id,
+          before: { status: before.status },
+          after: { status },
+        },
+        tx,
+      );
+      return toDto(p);
+    });
+    this.realtime.resultsChanged(raceId, [updated.categoryId]);
+    return updated;
+  }
+
+  /**
+   * Registrace na místě z mobilu (i offline přes frontu). Idempotentní podle klientského `id`.
+   * Když je navržené číslo mezitím obsazené, přidělí se další volné a klient to zobrazí.
+   */
+  async registerOnSite(
+    user: RequestUser,
+    raceId: string,
+    input: OnSiteRegistrationInput,
+  ): Promise<OnSiteRegistrationResult> {
+    await this.races.assertStartAccess(user, raceId);
+    const requestedBib = input.bib ?? null;
+    const existing = await this.prisma.participant.findUnique({ where: { id: input.id } });
+    if (existing) {
+      if (existing.raceId !== raceId) throw new ConflictException('Kolize identifikátoru.');
+      return {
+        participant: toDto(existing),
+        requestedBib,
+        bibChanged: requestedBib !== null && requestedBib !== existing.bib,
+      };
+    }
+    const created = await this.prisma.$transaction(async (tx) => {
+      const category = await this.resolve(tx, raceId, input);
+      let bib = input.bib ?? (await this.nextBib(tx, category.id));
+      const taken = await tx.participant.findUnique({
+        where: { categoryId_bib: { categoryId: category.id, bib } },
+      });
+      if (taken) bib = await this.nextBib(tx, category.id);
+      const p = await tx.participant.create({
+        data: {
+          id: input.id,
+          raceId,
+          categoryId: category.id,
+          bib,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          birthYear: input.birthYear,
+          gender: input.gender,
+          locality: input.locality,
+          status: 'checked_in',
+          registrationSource: 'on_site',
+        },
+      });
+      await this.audit.record(
+        { userId: user.id, action: 'create', entity: 'participant', entityId: p.id, after: p },
+        tx,
+      );
+      return toDto(p);
+    });
+    this.realtime.resultsChanged(raceId, [created.categoryId]);
+    return {
+      participant: created,
+      requestedBib,
+      bibChanged: requestedBib !== null && requestedBib !== created.bib,
+    };
   }
 
   async remove(user: RequestUser, raceId: string, id: string): Promise<void> {

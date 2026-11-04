@@ -5,6 +5,7 @@ import {
   type CategoryResultsDto,
   type RaceResultsDto,
   type RankingOverrideInput,
+  type ResultEvent,
   type TimeEventHistoryDto,
 } from '@triatlon/shared';
 import { AuditService } from '../audit/audit.service';
@@ -97,6 +98,30 @@ export class ResultsService {
       categories,
       users: Object.fromEntries(users.map((u) => [u.id, u.name])),
     };
+  }
+
+  /**
+   * Log akcí závodu (volitelně jen jednoho checkpointu) — mobilní appka z něj sdílenou projekcí
+   * pozná, kdo už je zaznamenaný (i z jiných zařízení), a uloží si ho pro offline režim.
+   */
+  async events(user: RequestUser, raceId: string, checkpointId?: string): Promise<ResultEvent[]> {
+    await this.races.assertAccess(user, raceId);
+    const events = await this.prisma.timeEvent.findMany({
+      where: { participant: { raceId }, ...(checkpointId ? { checkpointId } : {}) },
+      orderBy: { serverReceivedAt: 'asc' },
+    });
+    return events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      participantId: e.participantId,
+      checkpointId: e.checkpointId,
+      ts: e.ts.toISOString(),
+      note: e.note,
+      refEventId: e.refEventId,
+      reason: e.reason,
+      userId: e.userId,
+      serverReceivedAt: e.serverReceivedAt.toISOString(),
+    }));
   }
 
   /** Kompletní historie akcí závodníka — auditní stopa (kdo, kdy, z jakého zařízení, proč). */

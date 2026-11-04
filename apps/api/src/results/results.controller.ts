@@ -15,6 +15,7 @@ import {
   RankingOverrideInput,
   TimeEventsBatchInput,
   type RaceResultsDto,
+  type ResultEvent,
   type TimeEventHistoryDto,
   type TimeEventResult,
 } from '@triatlon/shared';
@@ -50,6 +51,15 @@ export class ResultsController {
     @Body(new ZodPipe(TimeEventsBatchInput)) body: TimeEventsBatchInput,
   ): Promise<TimeEventResult[]> {
     return this.timeEvents.ingest(user, raceId, body.events);
+  }
+
+  @Get('time-events')
+  events(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Query('checkpointId', OptionalUuid) checkpointId?: string,
+  ): Promise<ResultEvent[]> {
+    return this.results.events(user, raceId, checkpointId);
   }
 
   @Get('results')

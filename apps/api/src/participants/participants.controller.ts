@@ -12,6 +12,9 @@ import {
 } from '@nestjs/common';
 import {
   ImportRowsInput,
+  OnSiteRegistrationInput,
+  ParticipantStatusInput,
+  type OnSiteRegistrationResult,
   ParticipantInput,
   ParticipantUpdateInput,
   type ImportResult,
@@ -68,6 +71,29 @@ export class ParticipantsController {
     @Body(new ZodPipe(ImportRowsInput)) body: ImportRowsInput,
   ): Promise<ImportResult> {
     return this.participants.import(user, raceId, body.rows, false);
+  }
+
+  /** Registrace na místě (mobil, organizátor startu). */
+  @Post('on-site')
+  @HttpCode(200)
+  registerOnSite(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Body(new ZodPipe(OnSiteRegistrationInput)) body: OnSiteRegistrationInput,
+  ): Promise<OnSiteRegistrationResult> {
+    return this.participants.registerOnSite(user, raceId, body);
+  }
+
+  /** Check-in: přítomen / nepřítomen (mobil, organizátor startu). */
+  @Post(':id/status')
+  @HttpCode(200)
+  setStatus(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('id', Uuid) id: string,
+    @Body(new ZodPipe(ParticipantStatusInput)) body: ParticipantStatusInput,
+  ): Promise<ParticipantDto> {
+    return this.participants.setStatus(user, raceId, id, body.status);
   }
 
   @Roles('admin')

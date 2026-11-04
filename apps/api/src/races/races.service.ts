@@ -12,6 +12,7 @@ import {
   type CheckpointDto,
   type CheckpointData,
   intermediateInsertIndex,
+  startCheckpointId,
   validateCheckpointOrder,
   type RaceCreateInput,
   type RaceDetailDto,
@@ -34,6 +35,22 @@ export class RacesService {
   ) {}
 
   /** Admin má přístup ke všem závodům, organizátor jen k těm, kde má přiřazení. */
+  /** Check-in a registrace na místě: admin, nebo organizátor přiřazený ke startu. */
+  async assertStartAccess(user: RequestUser, raceId: string): Promise<void> {
+    await this.assertAccess(user, raceId);
+    if (isAdmin(user)) return;
+    const checkpoints = await this.prisma.checkpoint.findMany({ where: { raceId } });
+    const start = startCheckpointId(checkpoints);
+    const assigned =
+      start &&
+      (await this.prisma.assignment.count({
+        where: { raceId, userId: user.id, checkpointId: start },
+      }));
+    if (!assigned) {
+      throw new ForbiddenException('Check-in a registraci na místě smí jen organizátor startu.');
+    }
+  }
+
   async assertAccess(user: RequestUser, raceId: string): Promise<void> {
     const race = await this.prisma.race.findUnique({ where: { id: raceId }, select: { id: true } });
     if (!race) throw new NotFoundException('Závod nenalezen.');
@@ -70,6 +87,7 @@ export class RacesService {
           include: { checkpoints: true, _count: { select: { participants: true } } },
         },
         _count: { select: { participants: true } },
+        assignments: { where: { userId: user.id }, select: { checkpointId: true } },
       },
     });
     const ageGroups = AgeGroups.parse(race.ageGroups);
@@ -104,6 +122,9 @@ export class RacesService {
       disciplines: race.disciplines.map((d) => ({ id: d.id, name: d.name, seq: d.seq })),
       checkpoints: race.checkpoints.map(toCheckpointDto),
       categories,
+      myCheckpointIds: isAdmin(user)
+        ? race.checkpoints.map((c) => c.id)
+        : race.assignments.map((a) => a.checkpointId),
     };
   }
 

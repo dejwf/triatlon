@@ -6,3 +6,4 @@ export * from './participants.js';
 export * from './checkpoints.js';
 export * from './results.js';
 export * from './events.js';
+export * from './mobile.js';

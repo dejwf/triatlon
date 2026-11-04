@@ -169,6 +169,8 @@ export interface RaceDetailDto extends RaceSummaryDto {
   disciplines: DisciplineDto[];
   checkpoints: CheckpointDto[];
   categories: CategoryDto[];
+  /** Checkpointy, na které smí přihlášený uživatel zapisovat (admin: všechny). */
+  myCheckpointIds: string[];
 }
 
 export interface ParticipantDto {

@@ -141,6 +141,17 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 - **Konflikt záznamů**: víc platných záznamů téhož závodníka na stejném checkpointu (např. dva organizátoři) → platí dřívější a výsledky ho označí k ověření adminem.
 - Výpočet je čistá funkce nad append-only logem (`packages/shared/src/results.ts`): `record` / `cancel` (vrácení) / `admin_correction` (oprava s `refEventId`, nebo doplnění chybějícího času bez něj — vždy s důvodem) / `note`.
 
+## 7a. Mobilní appka — implementační rozhodnutí (F3)
+
+- `apps/mobile` (Expo SDK 58, Expo Router). Data závodu (závod, závodníci, log akcí) se ukládají do telefonu (SQLite) → appka funguje bez signálu i po restartu.
+- **Offline fronta** (`src/lib/outbox.ts`): akce se uloží synchronně před potvrzením v UI, odesílají se přísně v pořadí vzniku (registrace na místě před časy toho závodníka), zápisy časů dávkou. Síťová chyba / 5xx / 401 → zkusí znovu; 4xx nebo `rejected` → označí se a obsluha je vidí v „Synchronizace“.
+- **Zobrazení na checkpointu** (`src/lib/view.ts`) = snapshot ze serveru + neodeslané akce, přes stejnou projekci jako server (`projectEvents`).
+- **Hodiny**: offset vůči `GET /api/time` (vzorek s nejkratší odezvou), každých 5 min; čas akce = hodiny telefonu + offset − volitelný odečet reakční doby (0–1 s, nastavení zařízení).
+- **Check-in** `POST /races/:id/participants/:pid/status` a **registrace na místě** `POST /races/:id/participants/on-site` smí admin nebo organizátor přiřazený ke startu (start = první `transition` checkpoint bez disciplíny). Registrace je idempotentní podle UUID z appky; obsazené navržené číslo server nahradí dalším volným a appka obsluhu upozorní, ať vymění startovní číslo.
+- `GET /races/:id/time-events` vrací log akcí (všech zařízení) pro offline snapshot; detail závodu nese `myCheckpointIds`.
+- Hromadný start zapíše stejný čas všem přítomným bez startu; „vrátit start“ zruší starty kategorie zapsané tímto organizátorem.
+- Přihlášení v appce kódem z e-mailu (odkaz v e-mailu vede na web). Vypršelá session frontu nemaže — odešle se po přihlášení téhož uživatele.
+
 ## 8. Nefunkční požadavky
 
 - **Konzistence dat**: zápisy časů musí být idempotentní (opakované odeslání stejné akce z mobilu po výpadku sítě nesmí vytvořit duplicitní záznam) — doporučeno generovat klientský UUID pro každou akci.
@@ -162,6 +173,6 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 
 ## 10. Otevřené body (k doplnění)
 
-1. **Flow diagramy** od uživatele pro mobilní UX (přislíbeno dodat).
+1. **Flow diagramy** od uživatele pro mobilní UX (přislíbeno dodat). Zatím návrhové diagramy v [`docs/diagramy.md`](docs/diagramy.md) včetně seznamu otevřených otázek k ověření.
 2. **Hosting/cloud provider** — self-hosted Kubernetes vs. managed cloud; zatím stavět přenositelně (Docker, docker-compose).
-3. **Sub-checkpointy v mobilní appce a ve výsledcích** — v administraci se už zakládají (viz sekce 4); zobrazení mezičasů ze sub-checkpointů ve výsledcích a jejich zápis v appce se dořeší ve fázích F2/F3.
+3. ~~Sub-checkpointy v mobilní appce a ve výsledcích~~ — hotovo: ve výsledcích jako mezičasy (F2), v appce se zapisují gridem jako ostatní checkpointy (F3).

@@ -2,15 +2,16 @@
  * Ukázková data pro vývoj: Vlkančický triatlon 2027 s výchozími věkovými skupinami,
  * disciplínami, checkpointy, kategoriemi a jedním adminem. Spuštění je idempotentní.
  */
-import { AgeGroups, birthYearRange, type AgeGroup } from '@triatlon/shared';
+import { AgeGroups } from '@triatlon/shared';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client';
+import { createRaceWithDefaults } from './races/race-factory';
 
 const RACE_NAME = 'Vlkančický triatlon';
-const RACE_YEAR = 2027;
+const RACE_DATE = '2027-07-17';
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@example.com';
 
-const ageGroups: AgeGroup[] = AgeGroups.parse([
+const ageGroups = AgeGroups.parse([
   { label: '0–5', minAge: 0, maxAge: 5 },
   { label: '6–8', minAge: 6, maxAge: 8 },
   { label: '9–10', minAge: 9, maxAge: 10 },
@@ -20,15 +21,6 @@ const ageGroups: AgeGroup[] = AgeGroups.parse([
   { label: '41–50', minAge: 41, maxAge: 50 },
   { label: '51+', minAge: 51, maxAge: null },
 ]);
-
-const genders = [
-  { value: 'male', label: 'muži' },
-  { value: 'female', label: 'ženy' },
-] as const;
-const localities = [
-  { value: 'local', label: 'místní' },
-  { value: 'guest', label: 'hosté' },
-] as const;
 
 async function main(): Promise<void> {
   const prisma = new PrismaClient({
@@ -42,67 +34,15 @@ async function main(): Promise<void> {
       create: { email: ADMIN_EMAIL, name: 'Admin', role: 'admin' },
     });
 
-    if (
-      await prisma.race.findUnique({ where: { name_year: { name: RACE_NAME, year: RACE_YEAR } } })
-    ) {
-      console.log(`Závod ${RACE_NAME} ${RACE_YEAR} už existuje — přeskakuji.`);
+    const year = new Date(RACE_DATE).getUTCFullYear();
+    if (await prisma.race.findUnique({ where: { name_year: { name: RACE_NAME, year } } })) {
+      console.log(`Závod ${RACE_NAME} ${year} už existuje — přeskakuji.`);
       return;
     }
-
-    await prisma.$transaction(async (tx) => {
-      const race = await tx.race.create({
-        data: {
-          name: RACE_NAME,
-          year: RACE_YEAR,
-          date: new Date(`${RACE_YEAR}-07-17`),
-          ageGroups,
-        },
-      });
-
-      const [swim, bike, run] = await Promise.all(
-        ['plavání', 'cyklistika', 'běh'].map((name, i) =>
-          tx.discipline.create({ data: { raceId: race.id, name, seq: i + 1 } }),
-        ),
-      );
-
-      // start → konec plavání → konec kola → cíl (CLAUDE.md, sekce 4 – Checkpoint)
-      const checkpoints = await Promise.all(
-        [
-          { name: 'Start', disciplineId: null },
-          { name: 'Konec plavání', disciplineId: swim!.id },
-          { name: 'Konec kola', disciplineId: bike!.id },
-          { name: 'Cíl', disciplineId: run!.id },
-        ].map((cp, i) =>
-          tx.checkpoint.create({
-            data: { raceId: race.id, seq: i + 1, kind: 'transition', ...cp },
-          }),
-        ),
-      );
-
-      for (const group of ageGroups) {
-        const range = birthYearRange(RACE_YEAR, group);
-        for (const gender of genders) {
-          for (const locality of localities) {
-            await tx.category.create({
-              data: {
-                raceId: race.id,
-                name: `${group.label} ${gender.label} ${locality.label}`,
-                ageGroupLabel: group.label,
-                birthYearFrom: range.from,
-                birthYearTo: range.to,
-                gender: gender.value,
-                locality: locality.value,
-                checkpoints: {
-                  create: checkpoints.map((cp) => ({ checkpointId: cp.id })),
-                },
-              },
-            });
-          }
-        }
-      }
-    });
-
-    console.log(`Vytvořen závod ${RACE_NAME} ${RACE_YEAR} a admin ${ADMIN_EMAIL}.`);
+    await prisma.$transaction((tx) =>
+      createRaceWithDefaults(tx, { name: RACE_NAME, date: RACE_DATE, ageGroups }),
+    );
+    console.log(`Vytvořen závod ${RACE_NAME} ${year} a admin ${ADMIN_EMAIL}.`);
   } finally {
     await prisma.$disconnect();
   }

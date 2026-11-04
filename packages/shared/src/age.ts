@@ -17,8 +17,8 @@ export function birthYearRange(
 }
 
 /**
- * Najde věkovou skupinu pro ročník narození. Vrací první vyhovující skupinu v pořadí,
- * v jakém jsou definované (skupiny se v zadání na hranicích překrývají, např. 6–8 a 8–10).
+ * Najde věkovou skupinu pro ročník narození. Skupiny se nepřekrývají (validuje `AgeGroups`),
+ * takže vyhovuje nejvýš jedna; `undefined` = věk nespadá do žádné definované skupiny.
  */
 export function findAgeGroup(
   raceYear: number,

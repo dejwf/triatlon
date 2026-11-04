@@ -34,6 +34,30 @@ export const AgeGroup = z.object({
 export type AgeGroup = z.infer<typeof AgeGroup>;
 
 /**
+ * Sada věkových skupin závodu, jak ji definuje admin. Hranice jsou včetně (6–8 = 6, 7 i 8 let)
+ * a skupiny se nesmí překrývat — každý věk patří nejvýš do jedné skupiny.
+ */
+export const AgeGroups = z
+  .array(
+    AgeGroup.refine((g) => g.maxAge === null || g.maxAge >= g.minAge, {
+      message: 'Horní hranice věkové skupiny nesmí být menší než dolní.',
+    }),
+  )
+  .superRefine((groups, ctx) => {
+    const sorted = [...groups].sort((a, b) => a.minAge - b.minAge);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]!;
+      const cur = sorted[i]!;
+      if (prev.maxAge === null || prev.maxAge >= cur.minAge) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Věkové skupiny „${prev.label}“ a „${cur.label}“ se překrývají.`,
+        });
+      }
+    }
+  });
+
+/**
  * Akce z klienta (mobil/web). `id` generuje klient (UUID) → opakované odeslání je idempotentní.
  * `ts` je čas akce na klientovi už opravený o offset hodin vůči serveru.
  */

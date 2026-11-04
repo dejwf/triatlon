@@ -51,7 +51,7 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 ### Kategorie (Category)
 - Patří k závodu.
 - Definována kombinací:
-  - věkové skupiny (0–5, 6–8, 8–10, 10–15, 15–30, 30–40, 40–50, 50+ — konfigurovatelné na úrovni závodu, ne hardcoded); věk se počítá podle **ročníku narození**: `věk = rok závodu − rok narození` (datum narození v roce nerozhoduje). Kategorie si proto drží rozsah ročníků odvozený z věkové skupiny a roku závodu,
+  - věkové skupiny — **definuje je admin** pro každý závod (nic hardcoded); hranice jsou včetně a skupiny se nesmí překrývat, např. 0–5, 6–8, 9–10, 11–15, 16–30, 31–40, 41–50, 51+; věk se počítá podle **ročníku narození**: `věk = rok závodu − rok narození` (datum narození v roce nerozhoduje). Kategorie si proto drží rozsah ročníků odvozený z věkové skupiny a roku závodu,
   - pohlaví (muži / ženy),
   - lokality (local / guest).
 - Každá kategorie má vlastní definici tras (délka plavání, kola, běhu) — tedy i vlastní definici/mapování checkpointů s očekávanou vzdáleností, pokud bude potřeba počítat tempo.

@@ -13,6 +13,10 @@ import { ParticipantsService } from './participants/participants.service';
 import { PrismaService } from './prisma.service';
 import { RacesController } from './races/races.controller';
 import { RacesService } from './races/races.service';
+import { RealtimeService } from './realtime/realtime.service';
+import { ResultsController } from './results/results.controller';
+import { ResultsService } from './results/results.service';
+import { TimeEventsService } from './time-events/time-events.service';
 import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
 
@@ -23,6 +27,7 @@ import { UsersService } from './users/users.service';
     RacesController,
     ParticipantsController,
     UsersController,
+    ResultsController,
   ],
   providers: [
     PrismaService,
@@ -33,6 +38,9 @@ import { UsersService } from './users/users.service';
     RacesService,
     ParticipantsService,
     UsersService,
+    RealtimeService,
+    TimeEventsService,
+    ResultsService,
     // Všechny endpointy vyžadují přihlášení, pokud nejsou označené @Public().
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },

@@ -20,6 +20,7 @@ import type { RequestUser } from '../auth/decorators';
 import type { Participant, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { RacesService } from '../races/races.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 type Tx = Prisma.TransactionClient;
 
@@ -29,6 +30,7 @@ export class ParticipantsService {
     private readonly prisma: PrismaService,
     private readonly races: RacesService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async list(user: RequestUser, raceId: string, categoryId?: string): Promise<ParticipantDto[]> {
@@ -46,7 +48,7 @@ export class ParticipantsService {
     input: ParticipantInput,
     source: RegistrationSource = 'manual',
   ): Promise<ParticipantDto> {
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const category = await this.resolve(tx, raceId, input);
       const bib = input.bib ?? (await this.nextBib(tx, category.id));
       await this.assertBibFree(tx, category.id, category.name, bib);
@@ -69,6 +71,8 @@ export class ParticipantsService {
       );
       return toDto(p);
     });
+    this.realtime.resultsChanged(raceId, [created.categoryId]);
+    return created;
   }
 
   async update(
@@ -77,8 +81,10 @@ export class ParticipantsService {
     id: string,
     input: ParticipantUpdateInput,
   ): Promise<ParticipantDto> {
-    return this.prisma.$transaction(async (tx) => {
+    let previousCategory = '';
+    const updated = await this.prisma.$transaction(async (tx) => {
       const before = await this.find(tx, raceId, id);
+      previousCategory = before.categoryId;
       const merged = {
         firstName: input.firstName ?? before.firstName,
         lastName: input.lastName ?? before.lastName,
@@ -118,22 +124,28 @@ export class ParticipantsService {
       );
       return toDto(p);
     });
+    // Změna stavu (nepřítomen, diskvalifikace) mění výsledky.
+    this.realtime.resultsChanged(raceId, [previousCategory, updated.categoryId]);
+    return updated;
   }
 
   async remove(user: RequestUser, raceId: string, id: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const before = await this.find(tx, raceId, id);
-      if (await tx.timeEvent.count({ where: { participantId: id } })) {
-        throw new ConflictException(
-          'Závodník už má zaznamenané časy, nelze ho smazat (lze ho označit jako nepřítomného).',
+    await this.prisma
+      .$transaction(async (tx) => {
+        const before = await this.find(tx, raceId, id);
+        if (await tx.timeEvent.count({ where: { participantId: id } })) {
+          throw new ConflictException(
+            'Závodník už má zaznamenané časy, nelze ho smazat (lze ho označit jako nepřítomného).',
+          );
+        }
+        await tx.participant.delete({ where: { id } });
+        await this.audit.record(
+          { userId: user.id, action: 'delete', entity: 'participant', entityId: id, before },
+          tx,
         );
-      }
-      await tx.participant.delete({ where: { id } });
-      await this.audit.record(
-        { userId: user.id, action: 'delete', entity: 'participant', entityId: id, before },
-        tx,
-      );
-    });
+        return before.categoryId;
+      })
+      .then((categoryId) => this.realtime.resultsChanged(raceId, [categoryId]));
   }
 
   /**
@@ -237,6 +249,12 @@ export class ParticipantsService {
     });
 
     if (!result.ok && !dryRun) throw new UnprocessableEntityException(result);
+    if (result.imported) {
+      this.realtime.resultsChanged(
+        raceId,
+        result.rows.map((r) => r.participant!.categoryId),
+      );
+    }
     return result;
   }
 

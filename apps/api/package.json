@@ -10,7 +10,8 @@
     "test": "pnpm build && node --env-file-if-exists=../../.env --test \"dist/**/*.spec.js\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node --env-file-if-exists=../../.env dist/seed.js"
+    "prisma:seed": "node --env-file-if-exists=../../.env dist/seed.js",
+    "demo": "pnpm build && node --env-file-if-exists=../../.env dist/demo.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.3.2",

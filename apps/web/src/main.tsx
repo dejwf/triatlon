@@ -13,6 +13,8 @@ import { CategoriesTab } from './pages/race/CategoriesTab';
 import { ParticipantsTab } from './pages/race/ParticipantsTab';
 import { ImportTab } from './pages/race/ImportTab';
 import { OrganizersTab } from './pages/race/OrganizersTab';
+import { OverviewTab } from './pages/race/OverviewTab';
+import { ResultsTab } from './pages/race/ResultsTab';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 10_000, retry: 1 } },
@@ -30,7 +32,9 @@ const router = createBrowserRouter([
         path: 'zavody/:raceId',
         element: <RaceLayout />,
         children: [
-          { index: true, element: <Navigate to="zavodnici" replace /> },
+          { index: true, element: <Navigate to="prehled" replace /> },
+          { path: 'prehled', element: <OverviewTab /> },
+          { path: 'vysledky', element: <ResultsTab /> },
           { path: 'nastaveni', element: <RaceSettings /> },
           { path: 'checkpointy', element: <CheckpointsTab /> },
           { path: 'kategorie', element: <CategoriesTab /> },

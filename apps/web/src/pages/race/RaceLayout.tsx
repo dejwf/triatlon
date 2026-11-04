@@ -23,6 +23,8 @@ export function RaceLayout() {
         </span>
       </div>
       <nav className="tabs">
+        <NavLink to="prehled">Přehled</NavLink>
+        <NavLink to="vysledky">Výsledky</NavLink>
         <NavLink to="zavodnici">Závodníci</NavLink>
         {isAdmin && <NavLink to="import">Import</NavLink>}
         <NavLink to="kategorie">Kategorie</NavLink>

@@ -290,15 +290,71 @@ tr.editing select {
 }
 
 /* Sub-checkpointy odsazené pod svou disciplínou. */
-tr.sub td:nth-child(2) {
+table.checkpoints tr.sub td:nth-child(2) {
   padding-left: 1.6rem;
 }
 
-tr.sub td:nth-child(2)::before {
+table.checkpoints tr.sub td:nth-child(2)::before {
   content: '↳ ';
   color: var(--muted);
 }
 
-tr.sub td:nth-child(2) input {
+table.checkpoints tr.sub td:nth-child(2) input {
   width: calc(100% - 1.2rem);
+}
+
+/* Výsledky */
+.badge {
+  font-size: 0.85rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.badge.live {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.flag {
+  margin-left: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.flag.warn {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+tr.clickable:hover td {
+  background: var(--surface);
+}
+
+tr.selected td {
+  background: var(--editing);
+}
+
+table.results td,
+table.results th {
+  white-space: nowrap;
+}
+
+.sub-col {
+  color: var(--muted);
+}
+
+.discipline-col {
+  border-left: 1px dashed var(--border);
+}
+
+/* Sub-checkpoint v detailu závodníka: odsazený název. */
+tr.sub-row td:first-child {
+  padding-left: 1.4rem;
+  color: var(--muted);
 }

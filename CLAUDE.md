@@ -137,6 +137,9 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 - Průběžné pořadí: řazení podle posledního dosaženého checkpointu a jeho času; u závodníků se stejným posledním checkpointem řazení podle času.
 - Řazení/výsledky vždy v rámci kategorie (napříč kategoriemi srovnání časů nedává smysl kvůli různé délce trasy).
 - Nerozhodný výsledek: admin má nástroj pro ruční určení pořadí se zápisem důvodu (auditováno).
+- **Přesnost pořadí: celé sekundy** — časy ve stejné sekundě jsou remíza (stejné pořadí), dokud ji admin ručně nerozhodne; rozhodnutí platí jen pro přesně tutéž skupinu závodníků.
+- **Konflikt záznamů**: víc platných záznamů téhož závodníka na stejném checkpointu (např. dva organizátoři) → platí dřívější a výsledky ho označí k ověření adminem.
+- Výpočet je čistá funkce nad append-only logem (`packages/shared/src/results.ts`): `record` / `cancel` (vrácení) / `admin_correction` (oprava s `refEventId`, nebo doplnění chybějícího času bez něj — vždy s důvodem) / `note`.
 
 ## 8. Nefunkční požadavky
 

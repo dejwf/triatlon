@@ -129,3 +129,59 @@ export const auth = {
     save(null);
   },
 };
+
+/**
+ * Odběr živého kanálu (SSE) přes fetch — EventSource neumí poslat hlavičku Authorization.
+ * Volá `onEvent` pro každou zprávu; při výpadku se znovu připojí s rostoucí prodlevou.
+ * Vrací funkci pro ukončení odběru.
+ */
+export function subscribe(path: string, onEvent: (type: string, data: string) => void): () => void {
+  const controller = new AbortController();
+  let delay = 1000;
+
+  async function connect(): Promise<void> {
+    while (!controller.signal.aborted) {
+      try {
+        if (current && Date.parse(current.accessTokenExpiresAt) - Date.now() < 30_000)
+          await refresh();
+        const res = await fetch(`/api${path}`, {
+          headers: current ? { authorization: `Bearer ${current.accessToken}` } : {},
+          signal: controller.signal,
+        });
+        if (res.status === 401 && (await refresh())) continue;
+        if (!res.ok || !res.body) throw new Error(`stream ${res.status}`);
+        delay = 1000;
+        // Po (znovu)připojení mohla přijít zmeškaná změna → klient si data obnoví.
+        onEvent('connected', '');
+
+        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = '';
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+          let sep: number;
+          while ((sep = buffer.indexOf('\n\n')) >= 0) {
+            const chunk = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            let type = 'message';
+            const data: string[] = [];
+            for (const line of chunk.split('\n')) {
+              if (line.startsWith('event:')) type = line.slice(6).trim();
+              else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+            }
+            onEvent(type, data.join('\n'));
+          }
+        }
+      } catch {
+        if (controller.signal.aborted) return;
+      }
+      onEvent('disconnected', '');
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 30_000);
+    }
+  }
+
+  void connect();
+  return () => controller.abort();
+}

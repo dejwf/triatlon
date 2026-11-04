@@ -58,7 +58,7 @@ export function CheckpointsTab() {
         automaticky před konec své disciplíny. Které checkpointy platí pro kterou kategorii, se
         nastavuje v záložce Kategorie.
       </p>
-      <table>
+      <table className="checkpoints">
         <thead>
           <tr>
             <th className="num">#</th>

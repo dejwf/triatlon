@@ -79,6 +79,8 @@ model LoginToken {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash  String    @unique
   codeHash   String
+  /// Počet neúspěšných pokusů o zadání kódu — po vyčerpání limitu se token zneplatní.
+  attempts   Int       @default(0)
   expiresAt  DateTime
   consumedAt DateTime?
   createdAt  DateTime  @default(now())

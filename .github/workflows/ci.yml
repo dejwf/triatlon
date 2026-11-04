@@ -8,9 +8,20 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: triatlon
+          POSTGRES_PASSWORD: triatlon
+          POSTGRES_DB: triatlon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U triatlon" --health-interval 5s --health-retries 10
     env:
-      # Prisma generate potřebuje URL i bez běžící databáze.
       DATABASE_URL: postgresql://triatlon:triatlon@localhost:5432/triatlon
+      AUTH_SECRET: ci-secret-0123456789-0123456789-0123456789
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,4 +33,5 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm build
+      - run: pnpm --filter @triatlon/api exec prisma migrate deploy
       - run: pnpm test

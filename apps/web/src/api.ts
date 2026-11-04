@@ -30,10 +30,22 @@ let refreshing: Promise<AuthTokens | null> | null = null;
 
 export class ApiError extends Error {
   readonly status: number;
+  /** Tělo chybové odpovědi (např. výsledek validace importu nebo seznam chyb polí). */
+  readonly body: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.status = status;
+    this.body = body;
+  }
+
+  /** Srozumitelný popis chyby včetně chyb jednotlivých polí. */
+  get details(): string {
+    const issues = (this.body as { issues?: { path: string; message: string }[] } | undefined)
+      ?.issues;
+    return issues?.length
+      ? `${this.message} ${issues.map((i) => (i.path ? `${i.path}: ${i.message}` : i.message)).join('; ')}`
+      : this.message;
   }
 }
 
@@ -47,8 +59,9 @@ async function raw<T>(path: string, init: RequestInit = {}, token?: string): Pro
     },
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new ApiError(res.status, body.message ?? `Chyba ${res.status}`);
+    const body = (await res.json().catch(() => ({}))) as { message?: unknown };
+    const message = typeof body.message === 'string' ? body.message : `Chyba ${res.status}`;
+    throw new ApiError(res.status, message, body);
   }
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
@@ -78,6 +91,23 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw err;
   }
+}
+
+/** Zkratky pro volání API s JSON tělem. */
+export const http = {
+  get: <T>(path: string) => api<T>(path),
+  post: <T>(path: string, body?: unknown) =>
+    api<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  patch: <T>(path: string, body: unknown) =>
+    api<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) =>
+    api<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (path: string) => api<void>(path, { method: 'DELETE' }),
+};
+
+export function errorText(err: unknown): string {
+  if (err instanceof ApiError) return err.details;
+  return err instanceof Error ? err.message : 'Neznámá chyba.';
 }
 
 export const auth = {

@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // V dev režimu web volá API přes proxy → stejný origin, bez CORS.
-    proxy: { '/api': 'http://localhost:3000' },
+    proxy: { '/api': process.env.API_URL ?? 'http://localhost:3000' },
   },
 });

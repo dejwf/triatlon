@@ -1,11 +1,271 @@
 :root {
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --text: #1b1d21;
+  --muted: #5f6672;
+  --border: #d9dce1;
+  --accent: #0b6bcb;
+  --accent-text: #ffffff;
+  --danger: #c22a2a;
+  --ok: #1b7a3a;
+  --row-error: #fdecec;
+  --editing: #eef5fd;
+
   font-family: system-ui, sans-serif;
-  color-scheme: light dark;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a;
+    --surface: #1f2226;
+    --text: #e6e8eb;
+    --muted: #9aa1ac;
+    --border: #353a41;
+    --accent: #4c9be8;
+    --accent-text: #0b1020;
+    --danger: #ff7b7b;
+    --ok: #6fd28f;
+    --row-error: #3a1f22;
+    --editing: #1c2a3a;
+  }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+h2,
+h3 {
+  margin: 0.5rem 0 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.6;
+}
+
+button {
+  cursor: pointer;
+  background: var(--surface);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0.2rem 0.3rem;
+  color: var(--accent);
+}
+
+button.link.danger {
+  color: var(--danger);
+}
+
+input.short {
+  width: 6.5rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 1rem;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar nav {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.topbar nav a {
+  text-decoration: none;
+}
+
+.topbar nav a.active {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.tabs a {
+  padding: 0.5rem 0.8rem;
+  text-decoration: none;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+
+.tabs a.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--surface);
+  margin-bottom: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.check {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  margin-right: 0.6rem;
+  white-space: nowrap;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.center {
+  text-align: center;
+}
+
+tr.dimmed td {
+  opacity: 0.55;
+}
+
+tr.row-error td {
+  background: var(--row-error);
+}
+
+tr.editing td {
+  background: var(--editing);
+}
+
+tr.editing input,
+tr.editing select {
+  margin: 0 0.25rem 0.25rem 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.ok {
+  color: var(--ok);
 }
 
 .login form {
@@ -19,8 +279,12 @@ body {
   gap: 0.25rem;
 }
 
-input,
-button {
-  font: inherit;
-  padding: 0.5rem;
+.age-groups input {
+  width: 8rem;
+}
+
+@media (max-width: 600px) {
+  .topbar .user {
+    display: none;
+  }
 }

@@ -101,7 +101,7 @@ describe('administrace', () => {
     assert.equal(added.status, 201);
     assert.equal(added.body.seq, 5);
 
-    const ids = [...race.checkpoints.map((c) => c.id)];
+    const ids = race.checkpoints.map((c) => c.id);
     ids.splice(2, 0, added.body.id);
     const reordered = await t.request(
       'PUT',

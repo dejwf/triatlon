@@ -69,8 +69,11 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 - Má pořadí/sekvenci v rámci trasy.
 - U kategorie může/nemusí být relevantní (např. u dětí kratší trasa, ale stejné typy checkpointů — pokud by se lišily i typy checkpointů, je potřeba mapování kategorie → sada checkpointů).
 - Výchozí sada pro Vlkančický triatlon: **start → plavání → cyklistika → běh → cíl**, tj. měřené body `start`, `konec plavání`, `konec kola`, `cíl` (konec běhu). Přechody (depo) se zvlášť neměří.
-- **Sub-checkpointy (TBD — zatím NEIMPLEMENTOVAT, jen neuzavřít cestu):** v budoucnu mohou přibýt mezilehlé body uvnitř disciplíny (např. otočka na kole, polovina běhu) — zajímavé pro diváky i závodníky ke sledování průběhu, hlavně u dospělých kategorií. Datový model to musí umožnit bez přestavby:
-  - checkpoint nese typ (`transition` = hranice disciplíny / `intermediate` = sub-checkpoint) a odkaz na disciplínu, do které patří,
+- **Dva typy checkpointů:**
+  - `transition` = **hranice disciplíny** — start, nebo checkpoint, který disciplínu **ukončuje** (konec plavání, konec kola, cíl).
+  - `intermediate` = **sub-checkpoint** — mezičas **uvnitř** disciplíny, **nic neukončuje**. Příklad: během cyklistiky závodníci stoupají na kopec; na otočce je sub-checkpoint a další pod kopcem — ani jeden není konec cyklistiky. Zajímavé pro diváky i závodníky (hlavně dospělé kategorie).
+- Pravidla:
+  - sub-checkpoint musí patřit do disciplíny a ležet **uvnitř** ní — mezi předchozí hranicí a hranicí, která jeho disciplínu ukončuje (vynucuje API i při změně pořadí a mazání),
   - pořadí je obecná sekvence, ne pevný výčet 4 bodů,
   - čas disciplíny se počítá mezi hraničními (`transition`) checkpointy — sub-checkpointy ho neovlivní,
   - průběžné pořadí funguje s libovolným počtem checkpointů,
@@ -158,4 +161,4 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 
 1. **Flow diagramy** od uživatele pro mobilní UX (přislíbeno dodat).
 2. **Hosting/cloud provider** — self-hosted Kubernetes vs. managed cloud; zatím stavět přenositelně (Docker, docker-compose).
-3. **Sub-checkpointy uvnitř disciplín** — TBD na pozdější fázi; model s nimi počítá, ale neimplementují se (viz sekce 4).
+3. **Sub-checkpointy v mobilní appce a ve výsledcích** — v administraci se už zakládají (viz sekce 4); zobrazení mezičasů ze sub-checkpointů ve výsledcích a jejich zápis v appce se dořeší ve fázích F2/F3.

@@ -10,7 +10,9 @@ import {
   type CategoryDto,
   type CategoryUpdateInput,
   type CheckpointDto,
-  type CheckpointInput,
+  type CheckpointData,
+  intermediateInsertIndex,
+  validateCheckpointOrder,
   type RaceCreateInput,
   type RaceDetailDto,
   type RaceSummaryDto,
@@ -200,33 +202,45 @@ export class RacesService {
   async addCheckpoint(
     user: RequestUser,
     raceId: string,
-    input: CheckpointInput,
+    input: CheckpointData,
   ): Promise<CheckpointDto> {
     return this.prisma.$transaction(async (tx) => {
       await this.assertDiscipline(tx, raceId, input.disciplineId);
-      const last = await tx.checkpoint.findFirst({
-        where: { raceId },
-        orderBy: { seq: 'desc' },
-        select: { seq: true },
-      });
-      if (!last) throw new NotFoundException('Závod nenalezen.');
+      const existing = await tx.checkpoint.findMany({ where: { raceId }, orderBy: { seq: 'asc' } });
+      if (!existing.length) throw new NotFoundException('Závod nenalezen.');
+
+      // Hranice disciplíny jde na konec; sub-checkpoint těsně před konec své disciplíny.
+      let insertAt = existing.length;
+      if (input.kind === 'intermediate') {
+        insertAt = intermediateInsertIndex(existing, input.disciplineId!);
+        if (insertAt < 0) {
+          throw new BadRequestException(
+            'Disciplína nemá checkpoint, který ji ukončuje — sub-checkpoint nelze zařadit.',
+          );
+        }
+      }
+
       const categories = await tx.category.findMany({ where: { raceId }, select: { id: true } });
       const cp = await tx.checkpoint.create({
         data: {
           raceId,
           name: input.name,
+          kind: input.kind,
           disciplineId: input.disciplineId,
-          seq: last.seq + 1,
-          kind: 'transition',
+          seq: existing.at(-1)!.seq + 1,
           // Nový checkpoint platí výchozí pro všechny kategorie.
           categories: { create: categories.map((c) => ({ categoryId: c.id })) },
         },
       });
+      const ids = existing.map((c) => c.id);
+      ids.splice(insertAt, 0, cp.id);
+      await this.renumber(tx, raceId, ids);
+
       await this.audit.record(
         { userId: user.id, action: 'create', entity: 'checkpoint', entityId: cp.id, after: input },
         tx,
       );
-      return toCheckpointDto(cp);
+      return toCheckpointDto({ ...cp, seq: insertAt + 1 });
     });
   }
 
@@ -234,15 +248,33 @@ export class RacesService {
     user: RequestUser,
     raceId: string,
     id: string,
-    input: CheckpointInput,
+    input: CheckpointData,
   ): Promise<CheckpointDto> {
     return this.prisma.$transaction(async (tx) => {
       const before = await this.findCheckpoint(tx, raceId, id);
       await this.assertDiscipline(tx, raceId, input.disciplineId);
       const cp = await tx.checkpoint.update({
         where: { id },
-        data: { name: input.name, disciplineId: input.disciplineId },
+        data: { name: input.name, kind: input.kind, disciplineId: input.disciplineId },
       });
+      // Sub-checkpoint mimo svou disciplínu (např. po změně typu) se přesune těsně před
+      // její konec, aby admin nemusel pořadí rovnat ručně.
+      if (cp.kind === 'intermediate') {
+        const all = await tx.checkpoint.findMany({ where: { raceId }, orderBy: { seq: 'asc' } });
+        if (validateCheckpointOrder(all)) {
+          const others = all.filter((c) => c.id !== id);
+          const at = intermediateInsertIndex(others, cp.disciplineId!);
+          if (at < 0) {
+            throw new BadRequestException(
+              'Disciplína nemá checkpoint, který ji ukončuje — sub-checkpoint nelze zařadit.',
+            );
+          }
+          const ids = others.map((c) => c.id);
+          ids.splice(at, 0, id);
+          await this.renumber(tx, raceId, ids);
+        }
+      }
+      await this.assertOrder(tx, raceId);
       await this.audit.record(
         {
           userId: user.id,
@@ -266,6 +298,8 @@ export class RacesService {
       }
       await tx.checkpoint.delete({ where: { id } });
       await this.renumber(tx, raceId, await this.checkpointIds(tx, raceId));
+      // Smazání konce disciplíny by nechalo její sub-checkpointy „viset“.
+      await this.assertOrder(tx, raceId);
       await this.audit.record(
         { userId: user.id, action: 'delete', entity: 'checkpoint', entityId: id, before },
         tx,
@@ -288,6 +322,7 @@ export class RacesService {
         throw new BadRequestException('Pořadí musí obsahovat právě všechny checkpointy závodu.');
       }
       await this.renumber(tx, raceId, ids);
+      await this.assertOrder(tx, raceId);
       await this.audit.record(
         {
           userId: user.id,
@@ -383,6 +418,13 @@ export class RacesService {
     const cp = await tx.checkpoint.findFirst({ where: { id, raceId } });
     if (!cp) throw new NotFoundException('Checkpoint nenalezen.');
     return cp;
+  }
+
+  /** Sub-checkpointy musí ležet uvnitř své disciplíny (jinak rollback celé transakce). */
+  private async assertOrder(tx: Prisma.TransactionClient, raceId: string): Promise<void> {
+    const cps = await tx.checkpoint.findMany({ where: { raceId }, orderBy: { seq: 'asc' } });
+    const error = validateCheckpointOrder(cps);
+    if (error) throw new BadRequestException(error);
   }
 
   private async checkpointIds(tx: Prisma.TransactionClient, raceId: string): Promise<string[]> {

@@ -129,6 +129,100 @@ describe('administrace', () => {
     );
   });
 
+  it('sub-checkpointy: vloží se do své disciplíny a nedají se vyvést ven', async () => {
+    const bike = race.disciplines.find((d) => d.name === 'cyklistika')!.id;
+    const add = (name: string) =>
+      t.request(
+        'POST',
+        `/races/${race.id}/checkpoints`,
+        { name, kind: 'intermediate', disciplineId: bike },
+        admin,
+      );
+
+    const top = await add('Otočka na kopci');
+    assert.equal(top.status, 201, JSON.stringify(top.body));
+    assert.equal(top.body.kind, 'intermediate');
+    const bottom = await add('Pod kopcem');
+    assert.equal(bottom.status, 201);
+
+    const names = async () =>
+      (await t.request('GET', `/races/${race.id}`, undefined, admin)).body.checkpoints.map(
+        (c: { name: string }) => c.name,
+      );
+    assert.deepEqual(await names(), [
+      'Start',
+      'Konec plavání',
+      'Otočka na kopci',
+      'Pod kopcem',
+      'Konec kola',
+      'Cíl',
+    ]);
+
+    // Bez disciplíny sub-checkpoint nejde.
+    const noDiscipline = await t.request(
+      'POST',
+      `/races/${race.id}/checkpoints`,
+      { name: 'X', kind: 'intermediate', disciplineId: null },
+      admin,
+    );
+    assert.equal(noDiscipline.status, 400);
+
+    // Přesun za konec kola → odmítnuto.
+    const detail: RaceDetailDto = (await t.request('GET', `/races/${race.id}`, undefined, admin))
+      .body;
+    const ids = detail.checkpoints.map((c) => c.id);
+    const moved = [ids[0], ids[1], ids[2], ids[4], ids[3], ids[5]];
+    const bad = await t.request(
+      'PUT',
+      `/races/${race.id}/checkpoints/order`,
+      { checkpointIds: moved },
+      admin,
+    );
+    assert.equal(bad.status, 400);
+    assert.match(bad.body.message, /Pod kopcem/);
+
+    // Smazání konce kola by nechalo sub-checkpointy bez disciplíny → odmítnuto.
+    const endBike = detail.checkpoints.find((c) => c.name === 'Konec kola')!.id;
+    assert.equal(
+      (await t.request('DELETE', `/races/${race.id}/checkpoints/${endBike}`, undefined, admin))
+        .status,
+      400,
+    );
+
+    // Hranice za koncem kola přepnutá na sub-checkpoint cyklistiky se sama přesune dovnitř.
+    const misplaced = await t.request(
+      'POST',
+      `/races/${race.id}/checkpoints`,
+      { name: 'Půlka kola', kind: 'transition', disciplineId: null },
+      admin,
+    );
+    const fixed = await t.request(
+      'PATCH',
+      `/races/${race.id}/checkpoints/${misplaced.body.id}`,
+      { name: 'Půlka kola', kind: 'intermediate', disciplineId: bike },
+      admin,
+    );
+    assert.equal(fixed.status, 200, JSON.stringify(fixed.body));
+    assert.deepEqual(await names(), [
+      'Start',
+      'Konec plavání',
+      'Otočka na kopci',
+      'Pod kopcem',
+      'Půlka kola',
+      'Konec kola',
+      'Cíl',
+    ]);
+
+    for (const cp of [top.body, bottom.body, misplaced.body]) {
+      assert.equal(
+        (await t.request('DELETE', `/races/${race.id}/checkpoints/${cp.id}`, undefined, admin))
+          .status,
+        204,
+      );
+    }
+    race = (await t.request('GET', `/races/${race.id}`, undefined, admin)).body;
+  });
+
   it('kategorie: délky tratí a mapování checkpointů', async () => {
     const cat = category('female', 'local', '6–8');
     const cps = race.checkpoints.map((c) => c.id);

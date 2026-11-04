@@ -13,6 +13,7 @@ import {
 import {
   CategoryUpdateInput,
   CheckpointInput,
+  type CheckpointData,
   CheckpointOrderInput,
   RaceCreateInput,
   RaceUpdateInput,
@@ -71,7 +72,7 @@ export class RacesController {
   addCheckpoint(
     @CurrentUser() user: RequestUser,
     @Param('id', Uuid) raceId: string,
-    @Body(new ZodPipe(CheckpointInput)) body: CheckpointInput,
+    @Body(new ZodPipe(CheckpointInput)) body: CheckpointData,
   ): Promise<CheckpointDto> {
     return this.races.addCheckpoint(user, raceId, body);
   }
@@ -92,7 +93,7 @@ export class RacesController {
     @CurrentUser() user: RequestUser,
     @Param('id', Uuid) raceId: string,
     @Param('checkpointId', Uuid) id: string,
-    @Body(new ZodPipe(CheckpointInput)) body: CheckpointInput,
+    @Body(new ZodPipe(CheckpointInput)) body: CheckpointData,
   ): Promise<CheckpointDto> {
     return this.races.updateCheckpoint(user, raceId, id, body);
   }

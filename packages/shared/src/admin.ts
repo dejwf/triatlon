@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   AgeGroups,
+  CheckpointKind,
   Gender,
   Locality,
   ParticipantStatus,
@@ -27,12 +28,25 @@ export type RaceUpdateInput = z.infer<typeof RaceUpdateInput>;
 
 // ---------- Checkpointy ----------
 
-export const CheckpointInput = z.object({
-  name: Name,
-  /** Disciplína, kterou checkpoint ukončuje; null = start. */
-  disciplineId: Id.nullable(),
-});
-export type CheckpointInput = z.infer<typeof CheckpointInput>;
+/**
+ * - `transition` = hranice disciplíny: `disciplineId` je disciplína, kterou checkpoint
+ *   **ukončuje** (null = start).
+ * - `intermediate` = sub-checkpoint: mezičas **uvnitř** disciplíny `disciplineId` (povinná),
+ *   nic neukončuje — např. otočka na kopci během cyklistiky.
+ */
+export const CheckpointInput = z
+  .object({
+    name: Name,
+    kind: CheckpointKind.default('transition'),
+    disciplineId: Id.nullable(),
+  })
+  .refine((c) => c.kind === 'transition' || c.disciplineId !== null, {
+    message: 'Sub-checkpoint musí patřit do disciplíny.',
+    path: ['disciplineId'],
+  });
+export type CheckpointInput = z.input<typeof CheckpointInput>;
+/** Checkpoint po validaci (typ doplněný na výchozí). */
+export type CheckpointData = z.output<typeof CheckpointInput>;
 
 export const CheckpointOrderInput = z.object({ checkpointIds: z.array(Id).min(1) });
 export type CheckpointOrderInput = z.infer<typeof CheckpointOrderInput>;

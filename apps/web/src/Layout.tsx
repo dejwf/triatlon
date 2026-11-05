@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthUser } from '@triatlon/shared';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { api, auth } from './api';
 import { ROLE_LABEL } from './labels';
 import { Login } from './Login';
@@ -39,6 +39,9 @@ export function Layout() {
       <main className="container">
         <h1>Vlkančický triatlon</h1>
         <Login onLogin={onLogin} />
+        <p className="muted">
+          Diváci a závodníci: <Link to="/vysledky">veřejné výsledky</Link> bez přihlášení.
+        </p>
       </main>
     );
   }

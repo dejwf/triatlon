@@ -12,13 +12,19 @@ export const config = {
   get authSecret(): Uint8Array {
     const secret = required('AUTH_SECRET');
     if (secret.length < 32) throw new Error('AUTH_SECRET musí mít alespoň 32 znaků.');
+    if (process.env.NODE_ENV === 'production' && secret.startsWith('dev-secret')) {
+      throw new Error('AUTH_SECRET je vývojový — v produkci nastavte vlastní náhodný klíč.');
+    }
     return new TextEncoder().encode(secret);
   },
-  get smtp(): { host: string; port: number; from: string } {
+  get smtp(): { host: string; port: number; from: string; user?: string; password?: string } {
     return {
       host: process.env.SMTP_HOST ?? 'localhost',
       port: Number(process.env.SMTP_PORT ?? 1025),
       from: process.env.MAIL_FROM ?? 'Vlkančický triatlon <noreply@localhost>',
+      // Přihlášení k SMTP poskytovatele v produkci (v dev Mailpit bez přihlášení).
+      user: process.env.SMTP_USER || undefined,
+      password: process.env.SMTP_PASSWORD || undefined,
     };
   },
 };

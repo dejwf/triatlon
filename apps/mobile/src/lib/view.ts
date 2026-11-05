@@ -7,6 +7,7 @@
 import {
   projectEvents,
   resolveCategory,
+  startCheckpointId,
   type CategoryDto,
   type EffectiveTime,
   type OnSiteRegistrationInput,
@@ -90,6 +91,8 @@ export function registrationToParticipant(
     locality: r.locality,
     status: 'checked_in',
     registrationSource: 'on_site',
+    publicName: r.publicName ?? true,
+    anonymized: false,
   };
 }
 
@@ -118,15 +121,21 @@ function toResultEvent(e: TimeEventInput, userId: string, createdAt: string): Re
 
 /**
  * Položky gridu na checkpointu: přítomní závodníci kategorií, pro které checkpoint platí,
- * seřazení podle kategorie a čísla. Nepřítomní a diskvalifikovaní se nezobrazují.
+ * seřazení podle kategorie a čísla. Nezobrazují se:
+ * - nepřítomní a diskvalifikovaní (`hidden`),
+ * - na checkpointech za startem ti, kdo ještě nevystartovali (`notStarted`) — jinak by šlo
+ *   zapsat mezičas před startem (záporné časy). Kdo už tu čas má, zůstává, aby šel vrátit,
+ * - závodníci uzavřených kategorií (`closed`) — výsledky jsou oficiální, zápis server odmítne.
  */
 export function checkpointEntries(
   snapshot: RaceSnapshot,
   outbox: readonly OutboxItem[],
   checkpointId: string,
   userId: string,
-): { entries: CheckpointEntry[]; hidden: number } {
+): { entries: CheckpointEntry[]; hidden: number; notStarted: number; closed: number } {
   const race = snapshot.race;
+  const startId = startCheckpointId(race.checkpoints);
+  const isStart = startId === checkpointId;
   const categories = race.categories.filter((c) => c.checkpointIds.includes(checkpointId));
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const order = new Map(categories.map((c, i) => [c.id, i]));
@@ -151,6 +160,8 @@ export function checkpointEntries(
   }
 
   let hidden = 0;
+  let notStarted = 0;
+  let closed = 0;
   const entries: CheckpointEntry[] = [];
   for (const p of localParticipants(snapshot, outbox)) {
     const category = categoryById.get(p.categoryId);
@@ -159,7 +170,15 @@ export function checkpointEntries(
       hidden++;
       continue;
     }
+    if (category.closedAt) {
+      closed++;
+      continue;
+    }
     const time = projection.times.get(p.id)?.get(checkpointId) ?? null;
+    if (!isStart && !time && !(startId && projection.times.get(p.id)?.has(startId))) {
+      notStarted++;
+      continue;
+    }
     const mine = !!time && author.get(time.recordId) === userId;
     const relatedPending =
       !!time &&
@@ -192,7 +211,7 @@ export function checkpointEntries(
       (order.get(a.category.id) ?? 0) - (order.get(b.category.id) ?? 0) ||
       a.participant.bib - b.participant.bib,
   );
-  return { entries, hidden };
+  return { entries, hidden, notStarted, closed };
 }
 
 export interface CategoryStart {

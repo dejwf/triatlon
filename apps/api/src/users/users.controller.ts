@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import {
   AssignmentsInput,
+  DirectorInput,
   UserCreateInput,
   UserUpdateInput,
   type AssignmentDto,
@@ -61,5 +62,26 @@ export class UsersController {
   ): Promise<AssignmentDto[]> {
     await this.races.assertAccess(actor, raceId);
     return this.users.setAssignments(actor, raceId, userId, body.checkpointIds);
+  }
+
+  /** Ředitelé závodu (smí uzavírat kategorie). */
+  @Get('races/:raceId/directors')
+  async directors(
+    @CurrentUser() actor: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+  ): Promise<string[]> {
+    await this.races.assertAccess(actor, raceId);
+    return this.users.directors(raceId);
+  }
+
+  @Put('races/:raceId/directors/:userId')
+  async setDirector(
+    @CurrentUser() actor: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('userId', Uuid) userId: string,
+    @Body(new ZodPipe(DirectorInput)) body: DirectorInput,
+  ): Promise<string[]> {
+    await this.races.assertAccess(actor, raceId);
+    return this.users.setDirector(actor, raceId, userId, body.director);
   }
 }

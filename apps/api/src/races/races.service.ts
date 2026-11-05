@@ -25,7 +25,12 @@ import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { createCategories, createRaceWithDefaults, raceYear } from './race-factory';
 
-const isAdmin = (u: RequestUser) => u.role === 'admin' || u.role === 'super_admin';
+export const isAdmin = (u: RequestUser) => u.role === 'admin' || u.role === 'super_admin';
+
+/** Organizátor má k závodu přístup, když je přiřazený k checkpointu nebo je ředitelem závodu. */
+const memberOf = (userId: string): Prisma.RaceWhereInput => ({
+  OR: [{ assignments: { some: { userId } } }, { directors: { some: { userId } } }],
+});
 
 @Injectable()
 export class RacesService {
@@ -34,7 +39,6 @@ export class RacesService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Admin má přístup ke všem závodům, organizátor jen k těm, kde má přiřazení. */
   /** Check-in a registrace na místě: admin, nebo organizátor přiřazený ke startu. */
   async assertStartAccess(user: RequestUser, raceId: string): Promise<void> {
     await this.assertAccess(user, raceId);
@@ -51,17 +55,31 @@ export class RacesService {
     }
   }
 
+  /** Admin má přístup ke všem závodům, organizátor jen k těm, kde má přiřazení (nebo je ředitel). */
   async assertAccess(user: RequestUser, raceId: string): Promise<void> {
     const race = await this.prisma.race.findUnique({ where: { id: raceId }, select: { id: true } });
     if (!race) throw new NotFoundException('Závod nenalezen.');
     if (isAdmin(user)) return;
-    const assigned = await this.prisma.assignment.count({ where: { raceId, userId: user.id } });
-    if (!assigned) throw new ForbiddenException('K tomuto závodu nemáte přístup.');
+    const member = await this.prisma.race.count({ where: { id: raceId, ...memberOf(user.id) } });
+    if (!member) throw new ForbiddenException('K tomuto závodu nemáte přístup.');
+  }
+
+  /** Uzavírání a otevírání kategorií: admin, nebo ředitel tohoto závodu. */
+  async isDirector(user: RequestUser, raceId: string): Promise<boolean> {
+    if (isAdmin(user)) return true;
+    return (await this.prisma.raceDirector.count({ where: { raceId, userId: user.id } })) > 0;
+  }
+
+  async assertDirector(user: RequestUser, raceId: string): Promise<void> {
+    await this.assertAccess(user, raceId);
+    if (!(await this.isDirector(user, raceId))) {
+      throw new ForbiddenException('Uzavírat kategorie smí jen ředitel závodu.');
+    }
   }
 
   async list(user: RequestUser): Promise<RaceSummaryDto[]> {
     const races = await this.prisma.race.findMany({
-      where: isAdmin(user) ? {} : { assignments: { some: { userId: user.id } } },
+      where: isAdmin(user) ? {} : memberOf(user.id),
       orderBy: [{ year: 'desc' }, { name: 'asc' }],
       include: { _count: { select: { participants: true } } },
     });
@@ -88,6 +106,7 @@ export class RacesService {
         },
         _count: { select: { participants: true } },
         assignments: { where: { userId: user.id }, select: { checkpointId: true } },
+        directors: { where: { userId: user.id }, select: { userId: true } },
       },
     });
     const ageGroups = AgeGroups.parse(race.ageGroups);
@@ -104,6 +123,7 @@ export class RacesService {
         distances: c.distances as CategoryDto['distances'],
         checkpointIds: c.checkpoints.map((cc) => cc.checkpointId),
         participantCount: c._count.participants,
+        closedAt: c.closedAt?.toISOString() ?? null,
       }))
       .sort(
         (a, b) =>
@@ -125,6 +145,7 @@ export class RacesService {
       myCheckpointIds: isAdmin(user)
         ? race.checkpoints.map((c) => c.id)
         : race.assignments.map((a) => a.checkpointId),
+      isDirector: isAdmin(user) || race.directors.length > 0,
     };
   }
 

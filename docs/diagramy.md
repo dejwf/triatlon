@@ -1,6 +1,6 @@
 # Diagramy systému
 
-Návrhové diagramy podle `CLAUDE.md` a implementace (F0–F3). Jsou v [Mermaidu](https://mermaid.js.org/) — GitHub je vykreslí přímo, lokálně např. ve VS Code s rozšířením _Markdown Preview Mermaid Support_. Až dodáš vlastní flow diagramy, tyhle s nimi porovnáme a rozdíly dořešíme (viz [Otevřené otázky](#otevřené-otázky-k-ověření)).
+Návrhové diagramy podle `CLAUDE.md` a implementace (F0–F4). Jsou v [Mermaidu](https://mermaid.js.org/) — GitHub je vykreslí přímo, lokálně např. ve VS Code s rozšířením _Markdown Preview Mermaid Support_. Až dodáš vlastní flow diagramy, tyhle s nimi porovnáme a rozdíly dořešíme (viz [Otevřené otázky](#otevřené-otázky-k-ověření)).
 
 Obsah:
 
@@ -19,6 +19,9 @@ Obsah:
 13. [Výpočet výsledků](#13-výpočet-výsledků)
 14. [Korekce admina a remíza](#14-korekce-admina-a-remíza)
 15. [Checkpointy a sub-checkpointy](#15-checkpointy-a-sub-checkpointy)
+16. [Uzavření kategorie](#16-uzavření-kategorie)
+17. [Veřejná výsledková tabule](#17-veřejná-výsledková-tabule)
+18. [Nasazení](#18-nasazení)
 
 ---
 
@@ -27,9 +30,9 @@ Obsah:
 ```mermaid
 flowchart LR
   subgraph Klienti
-    M["📱 Mobilní appka (Expo)<br/>organizátoři na checkpointech<br/>offline fronta v SQLite"]
+    M["📱 Appka (Expo)<br/>organizátoři na checkpointech<br/>offline fronta v SQLite"]
     W["💻 Web (React)<br/>admin, organizátor"]
-    P["🌍 Veřejná tabule<br/>(F4, bez přihlášení)"]
+    P["🌍 Veřejná tabule<br/>(bez přihlášení)"]
   end
   subgraph Server
     API["API (NestJS)<br/>REST + SSE"]
@@ -41,7 +44,8 @@ flowchart LR
   M -- "HTTPS: dávky akcí (idempotentní UUID)<br/>GET /time (hodiny)" --> API
   W -- "HTTPS REST" --> API
   API -- "SSE: výsledky se změnily" --> W
-  API -. "SSE (F4)" .-> P
+  P -- "GET /public (cache)" --> API
+  API -- "SSE: výsledky se změnily" --> P
   API --> DB
   API -- "přihlašovací e-mail" --> SMTP
   S -. "stejná logika" .- M
@@ -194,11 +198,14 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
+  state "Skryto — ještě nevystartoval" as Hidden
   state "Čeká" as Waiting
   state "Zaznamenáno ⏳ (čeká na odeslání)" as Pending
   state "Zaznamenáno ✓" as Recorded
   state "Odmítnuto ⚠" as Rejected
-  [*] --> Waiting
+  [*] --> Hidden: checkpoint za startem
+  [*] --> Waiting: checkpoint start
+  Hidden --> Waiting: start zapsán (server nebo fronta telefonu)
   Waiting --> Pending: klepnutí na číslo
   Pending --> Recorded: server přijal
   Pending --> Rejected: server odmítl
@@ -416,6 +423,86 @@ flowchart LR
 - Kategorie si volí, které checkpointy pro ni platí (např. děti bez otočky).
 
 ---
+
+## 16. Uzavření kategorie
+
+Ředitel závodu (nebo admin) uzavře kategorii, až doběhne. Výsledky jsou oficiální a kdo je ještě na trati, dostane DNF.
+
+```mermaid
+stateDiagram-v2
+  state "Otevřená — nestartovala" as Open
+  state "Otevřená — probíhá" as Running
+  state "Uzavřená — oficiální výsledky" as Closed
+  [*] --> Open
+  Open --> Running: hromadný start
+  Running --> Closed: ředitel závodu uzavře (na trati → DNF)
+  Closed --> Running: ředitel znovu otevře (s důvodem)
+  note right of Closed
+    organizátoři nezapisují (časy, check-in, registrace),
+    appka kategorii v gridu skryje,
+    admin smí korigovat s důvodem
+  end note
+  note left of Open
+    uzavřít nejde (409)
+  end note
+```
+
+```mermaid
+sequenceDiagram
+  actor R as Ředitel závodu
+  participant C as Web / appka
+  participant API
+  participant DB
+  R->>C: Výsledky → kategorie → „Uzavřít kategorii“
+  C->>C: ukáže, kdo je na trati (bude DNF), potvrzení
+  C->>API: POST /races/:id/categories/:cid/close
+  API->>API: oprávnění: admin nebo ředitel tohoto závodu
+  API->>DB: closedAt, closedBy + audit (počet v cíli, seznam DNF)
+  alt byla to poslední otevřená kategorie
+    API->>DB: závod → dokončen
+  end
+  API-->>C: 204 + SSE „výsledky se změnily“
+  Note over C,API: veřejná tabule ukáže „✓ Oficiální výsledky“
+```
+
+## 17. Veřejná výsledková tabule
+
+```mermaid
+sequenceDiagram
+  actor D as Divák (telefon / projektor)
+  participant W as Web /vysledky
+  participant API
+  participant Cache as Cache výsledků (v API)
+  D->>W: otevře závod
+  W->>API: GET /public/races/:id/results
+  API->>Cache: je platná?
+  alt ne
+    Cache->>API: přepočítat z logu (jednou pro všechny diváky)
+  end
+  API-->>W: pořadí, číslo, jméno*, mezičasy (bez ročníku a interních ID)
+  W->>API: EventSource /public/races/:id/stream
+  loop každý zápis na checkpointu
+    API-->>W: „results“ (kategorie) → cache zneplatněna
+    W->>API: GET …/results
+  end
+  Note over W: * kdo odmítl zveřejnění, je jen „závodník č. X“
+```
+
+## 18. Nasazení
+
+```mermaid
+flowchart LR
+  U["Diváci, admin, organizátoři<br/>(web)"] -- "HTTPS 443" --> Caddy
+  A["📱 Appka"] -- "HTTPS /api" --> Caddy
+  subgraph Server["Server v EU (Docker Compose)"]
+    Caddy["web: Caddy<br/>statický web + auto HTTPS"] -- "/api (SSE bez bufferu)" --> API["api: NestJS<br/>migrace při startu"]
+    API --> PG[("postgres")]
+    B["backup: pg_dump<br/>interval, rotace"] --> PG
+    B --> F[["deploy/backups"]]
+  end
+  API -- "SMTP 587" --> M["SMTP poskytovatel"]
+  F -. "kopie mimo server" .-> O[("jiné úložiště v EU")]
+```
 
 ## Otevřené otázky k ověření
 

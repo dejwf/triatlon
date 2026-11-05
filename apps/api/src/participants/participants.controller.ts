@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  AnonymizeInput,
   ImportRowsInput,
   OnSiteRegistrationInput,
   ParticipantStatusInput,
@@ -19,6 +20,7 @@ import {
   ParticipantUpdateInput,
   type ImportResult,
   type ParticipantDto,
+  type ParticipantExportDto,
 } from '@triatlon/shared';
 import { CurrentUser, Roles, type RequestUser } from '../auth/decorators';
 import { ZodPipe } from '../common/zod.pipe';
@@ -116,5 +118,29 @@ export class ParticipantsController {
     @Param('id', Uuid) id: string,
   ): Promise<void> {
     return this.participants.remove(user, raceId, id);
+  }
+
+  /** GDPR: export osobních údajů závodníka (JSON). */
+  @Roles('admin')
+  @Get(':id/export')
+  export(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('id', Uuid) id: string,
+  ): Promise<ParticipantExportDto> {
+    return this.participants.export(user, raceId, id);
+  }
+
+  /** GDPR: anonymizace osobních údajů (časy a pořadí zůstanou). */
+  @Roles('admin')
+  @Post(':id/anonymize')
+  @HttpCode(200)
+  anonymize(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('id', Uuid) id: string,
+    @Body(new ZodPipe(AnonymizeInput)) body: AnonymizeInput,
+  ): Promise<ParticipantDto> {
+    return this.participants.anonymize(user, raceId, id, body.reason);
   }
 }

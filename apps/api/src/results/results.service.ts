@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   computeCategoryResults,
   projectEvents,
@@ -30,6 +35,11 @@ export class ResultsService {
     categoryId?: string,
   ): Promise<RaceResultsDto> {
     await this.races.assertAccess(user, raceId);
+    return this.compute(raceId, categoryId);
+  }
+
+  /** Výpočet výsledků bez kontroly přístupu (volající ji musí udělat sám — i veřejná tabule). */
+  async compute(raceId: string, categoryId?: string): Promise<RaceResultsDto> {
     const [race, events, overrides] = await Promise.all([
       this.prisma.race.findUniqueOrThrow({
         where: { id: raceId },
@@ -68,6 +78,8 @@ export class ResultsService {
         return {
           categoryId: c.id,
           name: c.name,
+          closedAt: c.closedAt?.toISOString() ?? null,
+          closedBy: c.closedById,
           overrides: own.map((o) => ({
             id: o.id,
             participantIds: o.participantIds,
@@ -81,12 +93,17 @@ export class ResultsService {
             participants: c.participants,
             projection,
             overrides: own,
+            closed: c.closedAt !== null,
           }),
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, 'cs'));
 
-    const userIds = new Set([...events.map((e) => e.userId), ...overrides.map((o) => o.userId)]);
+    const userIds = new Set([
+      ...events.map((e) => e.userId),
+      ...overrides.map((o) => o.userId),
+      ...categories.flatMap((c) => (c.closedBy ? [c.closedBy] : [])),
+    ]);
     const users = await this.prisma.user.findMany({
       where: { id: { in: [...userIds] } },
       select: { id: true, name: true },
@@ -220,6 +237,92 @@ export class ResultsService {
           entity: 'category',
           entityId: categoryId,
           before: override,
+          reason,
+        },
+        tx,
+      );
+    });
+    this.realtime.resultsChanged(raceId, [categoryId]);
+  }
+
+  /**
+   * Uzavření kategorie ředitelem závodu: výsledky se stanou oficiálními, kdo je ještě na trati,
+   * nedokončil (DNF), organizátoři už do kategorie nezapisují (admin může korigovat).
+   * Když se uzavře poslední kategorie, závod přejde do stavu „dokončen“.
+   */
+  async closeCategory(user: RequestUser, raceId: string, categoryId: string): Promise<void> {
+    await this.races.assertDirector(user, raceId);
+    const results = await this.raceResults(user, raceId, categoryId);
+    const category = results.categories[0]!;
+    if (category.closedAt) throw new ConflictException('Kategorie už je uzavřená.');
+    if (!category.startedAt) throw new ConflictException('Kategorie ještě nestartovala.');
+    const dnf = category.rows.filter((r) => r.state === 'racing');
+
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.category.updateMany({
+        where: { id: categoryId, closedAt: null },
+        data: { closedAt: new Date(), closedById: user.id },
+      });
+      if (!count) throw new ConflictException('Kategorie už je uzavřená.');
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'category_close',
+          entity: 'category',
+          entityId: categoryId,
+          after: {
+            finished: category.counts.finished,
+            dnf: dnf.map((r) => ({ participantId: r.participantId, bib: r.bib })),
+          },
+        },
+        tx,
+      );
+      const open = await tx.category.count({ where: { raceId, closedAt: null } });
+      if (!open) {
+        await tx.race.update({ where: { id: raceId }, data: { status: 'finished' } });
+        await this.audit.record(
+          {
+            userId: user.id,
+            action: 'update',
+            entity: 'race',
+            entityId: raceId,
+            after: { status: 'finished' },
+            reason: 'Uzavřena poslední kategorie.',
+          },
+          tx,
+        );
+      }
+    });
+    this.realtime.resultsChanged(raceId, [categoryId]);
+  }
+
+  /** Znovuotevření uzavřené kategorie (s důvodem); dokončený závod se vrátí do „probíhá“. */
+  async reopenCategory(
+    user: RequestUser,
+    raceId: string,
+    categoryId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.races.assertDirector(user, raceId);
+    await this.prisma.$transaction(async (tx) => {
+      const category = await tx.category.findFirst({ where: { id: categoryId, raceId } });
+      if (!category) throw new NotFoundException('Kategorie nenalezena.');
+      if (!category.closedAt) throw new ConflictException('Kategorie není uzavřená.');
+      await tx.category.update({
+        where: { id: categoryId },
+        data: { closedAt: null, closedById: null },
+      });
+      await tx.race.updateMany({
+        where: { id: raceId, status: 'finished' },
+        data: { status: 'running' },
+      });
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'category_reopen',
+          entity: 'category',
+          entityId: categoryId,
+          before: { closedAt: category.closedAt, closedById: category.closedById },
           reason,
         },
         tx,

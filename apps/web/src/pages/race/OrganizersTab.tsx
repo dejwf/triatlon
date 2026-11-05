@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AssignmentDto } from '@triatlon/shared';
 import { Link } from 'react-router';
 import { http } from '../../api';
-import { keys, useAssignments, useRace, useRaceId, useUsers } from '../../hooks';
+import { keys, useAssignments, useDirectors, useRace, useRaceId, useUsers } from '../../hooks';
 import { ROLE_LABEL } from '../../labels';
 import { ErrorBox, Loading } from '../../ui';
 
@@ -12,7 +12,15 @@ export function OrganizersTab() {
   const race = useRace(raceId);
   const users = useUsers();
   const assignments = useAssignments(raceId);
+  const directors = useDirectors(raceId);
   const queryClient = useQueryClient();
+  const saveDirector = useMutation({
+    mutationFn: ({ userId, director }: { userId: string; director: boolean }) =>
+      http.put<string[]>(`/races/${raceId}/directors/${userId}`, { director }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(keys.directors(raceId), data);
+    },
+  });
 
   const save = useMutation({
     mutationFn: ({ userId, checkpointIds }: { userId: string; checkpointIds: string[] }) =>
@@ -24,7 +32,8 @@ export function OrganizersTab() {
 
   if (users.error ?? assignments.error)
     return <ErrorBox error={users.error ?? assignments.error} />;
-  if (!race.data || !users.data || !assignments.data) return <Loading />;
+  if (!race.data || !users.data || !assignments.data || !directors.data) return <Loading />;
+  const directorIds = new Set(directors.data);
 
   const assigned = new Set(assignments.data.map((a) => `${a.userId}:${a.checkpointId}`));
   const active = users.data.filter((u) => u.active);
@@ -41,9 +50,10 @@ export function OrganizersTab() {
     <div className="stack">
       <p className="muted">
         Zaškrtněte, na kterých checkpointech uživatel v tomto závodě zapisuje. Přiřazení ke{' '}
-        <strong>startu</strong> zpřístupní check-in, registraci na místě a hromadný start kategorií.
-        Organizátor vidí jen závody, ke kterým je přiřazen. Nové uživatele založíte v{' '}
-        <Link to="/uzivatele">Uživatelích</Link>.
+        <strong>startu</strong> zpřístupní check-in, registraci na místě a hromadný start kategorií.{' '}
+        <strong>Ředitel závodu</strong> uzavírá kategorie (výsledky se stanou oficiálními, kdo je
+        ještě na trati, nedokončil) a smí je znovu otevřít. Organizátor vidí jen závody, ke kterým
+        je přiřazen. Nové uživatele založíte v <Link to="/uzivatele">Uživatelích</Link>.
       </p>
       <table>
         <thead>
@@ -54,6 +64,7 @@ export function OrganizersTab() {
                 {cp.name}
               </th>
             ))}
+            <th className="center">Ředitel závodu</th>
           </tr>
         </thead>
         <tbody>
@@ -73,11 +84,28 @@ export function OrganizersTab() {
                   />
                 </td>
               ))}
+              <td className="center">
+                {u.role === 'organizer' ? (
+                  <input
+                    type="checkbox"
+                    aria-label={`${u.name} – ředitel závodu`}
+                    checked={directorIds.has(u.id)}
+                    disabled={saveDirector.isPending}
+                    onChange={(e) =>
+                      saveDirector.mutate({ userId: u.id, director: e.target.checked })
+                    }
+                  />
+                ) : (
+                  <span className="muted" title="Admin smí uzavírat kategorie vždy">
+                    ✓
+                  </span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <ErrorBox error={save.error} />
+      <ErrorBox error={save.error ?? saveDirector.error} />
     </div>
   );
 }

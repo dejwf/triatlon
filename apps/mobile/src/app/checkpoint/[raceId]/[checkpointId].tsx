@@ -70,6 +70,8 @@ export default function CheckpointScreen() {
           entries={view.entries}
           categories={categories}
           hidden={view.hidden}
+          notStarted={view.notStarted}
+          closed={view.closed}
         />
       ) : tab === 'start' ? (
         <StartPanel raceId={raceId} checkpointId={checkpointId} entries={view.entries} />

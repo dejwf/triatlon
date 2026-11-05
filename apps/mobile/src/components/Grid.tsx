@@ -24,12 +24,16 @@ export function Grid({
   entries,
   categories,
   hidden,
+  notStarted,
+  closed,
 }: {
   raceId: string;
   checkpointId: string;
   entries: CheckpointEntry[];
   categories: CategoryDto[];
   hidden: number;
+  notStarted: number;
+  closed: number;
 }) {
   const { width } = useWindowDimensions();
   const [query, setQuery] = useState('');
@@ -102,7 +106,9 @@ export function Grid({
         </ScrollView>
         <Muted>
           Zaznamenáno {done} z {entries.length}
+          {notStarted ? ` · ${notStarted} ještě nevystartovalo` : ''}
           {hidden ? ` · ${hidden} nepřítomných skryto` : ''}
+          {closed ? ` · ${closed} v uzavřených kategoriích` : ''}
         </Muted>
       </View>
       <FlatList

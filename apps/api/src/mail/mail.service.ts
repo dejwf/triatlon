@@ -15,10 +15,13 @@ export class MailService {
   private transporter: Transporter | null = null;
 
   async send(message: MailMessage): Promise<void> {
+    const { host, port, user, password } = config.smtp;
     this.transporter ??= nodemailer.createTransport({
-      host: config.smtp.host,
-      port: config.smtp.port,
-      secure: false,
+      host,
+      port,
+      // 465 = TLS od začátku; ostatní porty (587) přejdou na TLS přes STARTTLS, umí-li to server.
+      secure: port === 465,
+      auth: user ? { user, pass: password } : undefined,
     });
     await this.transporter.sendMail({ from: config.smtp.from, ...message });
   }

@@ -161,6 +161,7 @@ describe('výsledky a zápis časů', () => {
       absent: 1,
       started: 3,
       finished: 2,
+      dnf: 0,
       disqualified: 0,
     });
     assert.deepEqual(

@@ -127,6 +127,40 @@ export class UsersService {
     });
     return this.assignments(raceId);
   }
+
+  async directors(raceId: string): Promise<string[]> {
+    const rows = await this.prisma.raceDirector.findMany({ where: { raceId } });
+    return rows.map((r) => r.userId);
+  }
+
+  /** Udělí / odebere oprávnění ředitele závodu (uzavírání kategorií). */
+  async setDirector(
+    actor: RequestUser,
+    raceId: string,
+    userId: string,
+    director: boolean,
+  ): Promise<string[]> {
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user) throw new NotFoundException('Uživatel nenalezen.');
+      const key = { raceId_userId: { raceId, userId } };
+      const was = !!(await tx.raceDirector.findUnique({ where: key }));
+      if (was === director) return;
+      if (director) await tx.raceDirector.create({ data: { raceId, userId } });
+      else await tx.raceDirector.delete({ where: key });
+      await this.audit.record(
+        {
+          userId: actor.id,
+          action: director ? 'director_grant' : 'director_revoke',
+          entity: 'user',
+          entityId: userId,
+          after: { raceId },
+        },
+        tx,
+      );
+    });
+    return this.directors(raceId);
+  }
 }
 
 function toDto(u: User): UserDto {

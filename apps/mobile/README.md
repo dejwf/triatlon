@@ -1,4 +1,4 @@
-# Mobilní appka (Expo)
+# Appka (Expo)
 
 Appka pro organizátory na checkpointech: grid čísel, poznámky a vrácení akce, check-in, registrace na místě, hromadný start kategorie, offline fronta a synchronizace hodin. Rozhodnutí viz `CLAUDE.md` (sekce 7a), diagramy v `docs/diagramy.md`.
 

@@ -153,8 +153,36 @@ describe('výsledky kategorie', () => {
       absent: 1,
       started: 4,
       finished: 2,
+      dnf: 0,
       disqualified: 1,
     });
+  });
+
+  it('uzavřená kategorie: kdo je ještě na trati, nedokončil (DNF) a nemá pořadí', () => {
+    const events = [
+      ...fullRace('done', 300, 1500, 2500),
+      ev('record', 'onCourse', 'start', 0),
+      ev('record', 'onCourse', 'swimEnd', 250),
+    ];
+    const participants = [p('done', 1), p('onCourse', 2), p('dns', 3)];
+    const open = results(events, participants);
+    expect(open.rows.find((x) => x.participantId === 'onCourse')).toMatchObject({
+      state: 'racing',
+      rank: 2,
+    });
+    const closed = computeCategoryResults({
+      checkpoints: cps,
+      disciplines,
+      participants,
+      projection: projectEvents(events),
+      closed: true,
+    });
+    expect(closed.rows.map((x) => [x.participantId, x.state, x.rank])).toEqual([
+      ['done', 'finished', 1],
+      ['onCourse', 'dnf', null],
+      ['dns', 'not_started', null],
+    ]);
+    expect(closed.counts.dnf).toBe(1);
   });
 
   it('nedokončení na stejném checkpointu se řadí podle času od startu', () => {

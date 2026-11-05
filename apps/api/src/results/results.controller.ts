@@ -12,6 +12,7 @@ import {
   type MessageEvent,
 } from '@nestjs/common';
 import {
+  CategoryReopenInput,
   RankingOverrideInput,
   TimeEventsBatchInput,
   type RaceResultsDto,
@@ -102,6 +103,28 @@ export class ResultsController {
     @Param('id', Uuid) id: string,
   ): Promise<void> {
     return this.results.removeOverride(user, raceId, categoryId, id);
+  }
+
+  /** Uzavření kategorie (ředitel závodu / admin) — výsledky se stanou oficiálními. */
+  @Post('categories/:categoryId/close')
+  @HttpCode(204)
+  close(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('categoryId', Uuid) categoryId: string,
+  ): Promise<void> {
+    return this.results.closeCategory(user, raceId, categoryId);
+  }
+
+  @Post('categories/:categoryId/reopen')
+  @HttpCode(204)
+  reopen(
+    @CurrentUser() user: RequestUser,
+    @Param('raceId', Uuid) raceId: string,
+    @Param('categoryId', Uuid) categoryId: string,
+    @Body(new ZodPipe(CategoryReopenInput)) body: CategoryReopenInput,
+  ): Promise<void> {
+    return this.results.reopenCategory(user, raceId, categoryId, body.reason);
   }
 
   /**

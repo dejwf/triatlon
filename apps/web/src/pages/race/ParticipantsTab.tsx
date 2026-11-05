@@ -4,6 +4,7 @@ import type {
   Gender,
   Locality,
   ParticipantDto,
+  ParticipantExportDto,
   ParticipantInput,
   ParticipantStatus,
   ParticipantUpdateInput,
@@ -103,8 +104,13 @@ export function ParticipantsTab() {
                 <td className="num">
                   <strong>{p.bib}</strong>
                 </td>
-                <td>
+                <td className={p.anonymized ? 'muted' : undefined}>
                   {p.lastName} {p.firstName}
+                  {!p.publicName && !p.anonymized && (
+                    <span className="flag" title="Jméno se na veřejné tabuli nezobrazuje">
+                      🔒
+                    </span>
+                  )}
                 </td>
                 <td className="num">{p.birthYear}</td>
                 <td>{categories.get(p.categoryId)?.name}</td>
@@ -150,6 +156,7 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
         gender: d.get('gender') as Gender,
         locality: d.get('locality') as Locality,
         bib: bib ? Number(bib) : undefined,
+        publicName: d.get('publicName') === 'on',
       },
       // Formulář zůstává otevřený pro zadání dalšího závodníka.
       { onSuccess: () => form.reset() },
@@ -185,6 +192,9 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
           <option value="guest">host</option>
         </select>
         <input name="bib" type="number" min={1} placeholder="Číslo (auto)" className="short" />
+        <label title="Závodník může zveřejnění jména na veřejné výsledkové tabuli odmítnout">
+          <input name="publicName" type="checkbox" defaultChecked /> jméno veřejně
+        </label>
       </div>
       <ErrorBox error={add.error} />
       {add.isSuccess && (
@@ -230,6 +240,26 @@ function EditParticipant({
   const remove = useMutation({
     mutationFn: () => http.delete(`/races/${raceId}/participants/${p.id}`),
     onSuccess: invalidate,
+  });
+  const exportData = useMutation({
+    mutationFn: () =>
+      http.get<ParticipantExportDto>(`/races/${raceId}/participants/${p.id}/export`),
+    onSuccess: (data) => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `zavodnik-${p.bib}-${p.lastName}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+  });
+  const anonymize = useMutation({
+    mutationFn: (reason: string) =>
+      http.post(`/races/${raceId}/participants/${p.id}/anonymize`, { reason }),
+    onSuccess: async () => {
+      await invalidate();
+      onDone();
+    },
   });
 
   return (
@@ -294,6 +324,14 @@ function EditParticipant({
             </option>
           ))}
         </select>
+        <label>
+          <input
+            type="checkbox"
+            checked={form.publicName}
+            onChange={(e) => setForm({ ...form, publicName: e.target.checked })}
+          />{' '}
+          jméno veřejně
+        </label>
       </td>
       <td colSpan={2} className="actions">
         <button
@@ -308,6 +346,7 @@ function EditParticipant({
               gender: form.gender,
               locality: form.locality,
               status: form.status,
+              publicName: form.publicName,
             })
           }
         >
@@ -324,7 +363,28 @@ function EditParticipant({
         >
           Smazat
         </button>
-        <ErrorBox error={save.error ?? remove.error} />
+        <button
+          className="link"
+          title="GDPR: všechny osobní údaje závodníka jako JSON"
+          onClick={() => exportData.mutate()}
+        >
+          Export údajů
+        </button>
+        {!p.anonymized && (
+          <button
+            className="link danger"
+            title="GDPR: nahradí jméno, skryje ho z tabule a smaže kopie z auditu; časy a pořadí zůstanou"
+            onClick={() => {
+              const reason = window.prompt(
+                `Anonymizovat ${p.firstName} ${p.lastName}? Nelze vrátit. Uveďte důvod:`,
+              );
+              if (reason?.trim()) anonymize.mutate(reason.trim());
+            }}
+          >
+            Anonymizovat
+          </button>
+        )}
+        <ErrorBox error={save.error ?? remove.error ?? exportData.error ?? anonymize.error} />
       </td>
     </tr>
   );

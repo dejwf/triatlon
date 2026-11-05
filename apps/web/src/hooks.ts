@@ -18,6 +18,7 @@ export const keys = {
   race: (id: string) => ['race', id] as const,
   participants: (raceId: string) => ['participants', raceId] as const,
   assignments: (raceId: string) => ['assignments', raceId] as const,
+  directors: (raceId: string) => ['directors', raceId] as const,
   users: ['users'] as const,
   results: (raceId: string) => ['results', raceId] as const,
   history: (raceId: string, participantId: string) => ['history', raceId, participantId] as const,
@@ -97,6 +98,12 @@ export const useAssignments = (raceId: string) =>
   useQuery({
     queryKey: keys.assignments(raceId),
     queryFn: () => http.get<AssignmentDto[]>(`/races/${raceId}/assignments`),
+  });
+
+export const useDirectors = (raceId: string) =>
+  useQuery({
+    queryKey: keys.directors(raceId),
+    queryFn: () => http.get<string[]>(`/races/${raceId}/directors`),
   });
 
 export const useUsers = () =>

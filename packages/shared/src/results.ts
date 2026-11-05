@@ -145,7 +145,11 @@ export function projectEvents(events: readonly ResultEvent[]): Projection {
 
 // ---------- Výsledky kategorie ----------
 
-export type ResultState = 'finished' | 'racing' | 'not_started' | 'disqualified';
+/**
+ * Stav závodníka ve výsledcích. `dnf` = nedokončil: má start, ale ne cíl, a kategorie je
+ * uzavřená (dokud uzavřená není, je takový závodník `racing` — ještě je na trati).
+ */
+export type ResultState = 'finished' | 'racing' | 'dnf' | 'not_started' | 'disqualified';
 
 export interface ResultSplit {
   checkpointId: string;
@@ -187,6 +191,7 @@ export interface CategoryResults {
     absent: number;
     started: number;
     finished: number;
+    dnf: number;
     disqualified: number;
   };
   /** Checkpointy platné pro kategorii, seřazené podle trasy. */
@@ -210,6 +215,8 @@ export function computeCategoryResults(input: {
   participants: readonly ResultParticipant[];
   projection: Projection;
   overrides?: readonly RankingOverride[];
+  /** Kategorie je uzavřená → kdo je ještě „na trati“, nedokončil (DNF). */
+  closed?: boolean;
 }): CategoryResults {
   const checkpoints = [...input.checkpoints].sort((a, b) => a.seq - b.seq);
   const transitions = checkpoints.filter((c) => c.kind === 'transition');
@@ -265,7 +272,9 @@ export function computeCategoryResults(input: {
         : totalMs !== null
           ? 'finished'
           : splits.length
-            ? 'racing'
+            ? input.closed && start
+              ? 'dnf'
+              : 'racing'
             : 'not_started';
 
     rows.push({
@@ -304,6 +313,7 @@ export function computeCategoryResults(input: {
       absent,
       started: rows.filter((r) => r.startTs !== null && r.state !== 'disqualified').length,
       finished: rows.filter((r) => r.state === 'finished').length,
+      dnf: rows.filter((r) => r.state === 'dnf').length,
       disqualified: rows.filter((r) => r.state === 'disqualified').length,
     },
     checkpointIds: checkpoints.map((c) => c.id),
@@ -340,8 +350,9 @@ function rank(
   const stateOrder: Record<ResultState, number> = {
     finished: 0,
     racing: 1,
-    not_started: 2,
-    disqualified: 3,
+    dnf: 2,
+    not_started: 3,
+    disqualified: 4,
   };
   const keys = new Map(rows.map((r) => [r.participantId, key(r)]));
 

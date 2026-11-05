@@ -11,6 +11,8 @@ import { MailService } from './mail/mail.service';
 import { ParticipantsController } from './participants/participants.controller';
 import { ParticipantsService } from './participants/participants.service';
 import { PrismaService } from './prisma.service';
+import { PublicController } from './public/public.controller';
+import { PublicService } from './public/public.service';
 import { RacesController } from './races/races.controller';
 import { RacesService } from './races/races.service';
 import { RealtimeService } from './realtime/realtime.service';
@@ -28,6 +30,7 @@ import { UsersService } from './users/users.service';
     ParticipantsController,
     UsersController,
     ResultsController,
+    PublicController,
   ],
   providers: [
     PrismaService,
@@ -41,6 +44,7 @@ import { UsersService } from './users/users.service';
     RealtimeService,
     TimeEventsService,
     ResultsService,
+    PublicService,
     // Všechny endpointy vyžadují přihlášení, pokud nejsou označené @Public().
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },

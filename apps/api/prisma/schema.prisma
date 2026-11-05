@@ -1,8 +1,8 @@
 // Datový model systému pro Vlkančický triatlon — viz CLAUDE.md, sekce 4.
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
   moduleFormat        = "cjs"
   importFileExtension = "js"
 }
@@ -60,16 +60,17 @@ enum TimeEventType {
 }
 
 model User {
-  id          String       @id @default(uuid()) @db.Uuid
-  email       String       @unique
+  id          String         @id @default(uuid()) @db.Uuid
+  email       String         @unique
   name        String
-  role        UserRole     @default(organizer)
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
+  role        UserRole       @default(organizer)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
   assignments Assignment[]
   loginTokens LoginToken[]
   sessions    Session[]
   timeEvents  TimeEvent[]
+  directing   RaceDirector[]
 }
 
 /// Jednorázový token pro přihlášení magic linkem (v DB jen hash) + 6místný kód pro mobil.
@@ -103,40 +104,44 @@ model Session {
 }
 
 model Race {
-  id          String        @id @default(uuid()) @db.Uuid
-  name        String
-  year        Int
-  date        DateTime      @db.Date
-  status      RaceStatus    @default(planned)
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String
+  year         Int
+  date         DateTime       @db.Date
+  status       RaceStatus     @default(planned)
   /// Konfigurovatelné věkové skupiny: [{ label, minAge, maxAge|null }]
-  ageGroups   Json
-  createdAt   DateTime      @default(now())
-  categories  Category[]
-  disciplines Discipline[]
-  checkpoints Checkpoint[]
+  ageGroups    Json
+  createdAt    DateTime       @default(now())
+  categories   Category[]
+  disciplines  Discipline[]
+  checkpoints  Checkpoint[]
   participants Participant[]
-  assignments Assignment[]
+  assignments  Assignment[]
+  directors    RaceDirector[]
 
   @@unique([name, year])
 }
 
 model Category {
-  id            String               @id @default(uuid()) @db.Uuid
-  raceId        String               @db.Uuid
-  race          Race                 @relation(fields: [raceId], references: [id], onDelete: Cascade)
-  name          String
-  ageGroupLabel String
+  id               String               @id @default(uuid()) @db.Uuid
+  raceId           String               @db.Uuid
+  race             Race                 @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  name             String
+  ageGroupLabel    String
   /// Rozsah ročníků narození (dopočteno z věkové skupiny a roku závodu); null = bez hranice.
-  birthYearFrom Int?
-  birthYearTo   Int
-  gender        Gender
-  locality      Locality
+  birthYearFrom    Int?
+  birthYearTo      Int
+  gender           Gender
+  locality         Locality
   /// Délky tratí pro tempo, např. { swim: 100, bike: 5000, run: 1000 } v metrech.
-  distances     Json?
+  distances        Json?
   /// Čas hromadného startu kategorie (pro zobrazení uplynulého času); per-závodník start je v TimeEvent.
-  startedAt     DateTime?
-  participants  Participant[]
-  checkpoints   CategoryCheckpoint[]
+  startedAt        DateTime?
+  /// Uzavřeno ředitelem závodu → výsledky jsou oficiální, organizátoři už nezapisují.
+  closedAt         DateTime?
+  closedById       String?              @db.Uuid
+  participants     Participant[]
+  checkpoints      CategoryCheckpoint[]
   rankingOverrides RankingOverride[]
 
   @@unique([raceId, ageGroupLabel, gender, locality])
@@ -197,6 +202,10 @@ model Participant {
   locality           Locality
   status             ParticipantStatus  @default(registered)
   registrationSource RegistrationSource @default(manual)
+  /// Zobrazit jméno na veřejné tabuli (GDPR — závodník může odmítnout).
+  publicName         Boolean            @default(true)
+  /// Kdy byly osobní údaje anonymizovány (GDPR); null = ne.
+  anonymizedAt       DateTime?
   createdAt          DateTime           @default(now())
   timeEvents         TimeEvent[]
 
@@ -216,6 +225,16 @@ model Assignment {
 
   @@unique([userId, checkpointId])
   @@index([raceId])
+}
+
+/// Ředitel závodu — organizátor, který smí uzavírat a znovu otevírat kategorie.
+model RaceDirector {
+  raceId String @db.Uuid
+  race   Race   @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([raceId, userId])
 }
 
 /// Append-only log akcí na checkpointech. `id` generuje klient → idempotentní zápis.
@@ -245,14 +264,14 @@ model TimeEvent {
 
 /// Ruční určení pořadí adminem (nerozhodný/sporný výsledek), vždy s důvodem.
 model RankingOverride {
-  id             String   @id @default(uuid()) @db.Uuid
-  categoryId     String   @db.Uuid
-  category       Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id             String    @id @default(uuid()) @db.Uuid
+  categoryId     String    @db.Uuid
+  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   /// Seřazené ID závodníků, kterých se rozhodnutí týká.
-  participantIds String[] @db.Uuid
+  participantIds String[]  @db.Uuid
   reason         String
-  userId         String   @db.Uuid
-  createdAt      DateTime @default(now())
+  userId         String    @db.Uuid
+  createdAt      DateTime  @default(now())
   supersededAt   DateTime?
 }
 

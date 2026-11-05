@@ -39,6 +39,7 @@ function category(id: string, gender: 'male' | 'female'): CategoryDto {
     distances: null,
     checkpointIds: [START, FINISH],
     participantCount: 0,
+    closedAt: null,
   };
 }
 
@@ -59,6 +60,8 @@ function participant(
     locality: 'local',
     status: status as ParticipantDto['status'],
     registrationSource: 'manual',
+    publicName: true,
+    anonymized: false,
   };
 }
 
@@ -78,6 +81,7 @@ function snapshot(events: ResultEvent[] = []): RaceSnapshot {
     ],
     categories: [category('m', 'male'), category('f', 'female')],
     myCheckpointIds: [START],
+    isDirector: false,
   };
   return {
     race,
@@ -105,6 +109,14 @@ function eventItem(event: TimeEventInput, state: OutboxItem['state'] = 'pending'
   };
 }
 
+/** Starty potvrzené serverem (z jiného zařízení). */
+const started = (...ids: string[]): ResultEvent[] =>
+  ids.map((id) => ({
+    ...record(id, START, '2026-07-17T08:00:00.000Z'),
+    userId: OTHER,
+    serverReceivedAt: '2026-07-17T08:00:01.000Z',
+  }));
+
 const record = (participantId: string, checkpointId: string, ts: string): TimeEventInput => ({
   id: uuid(),
   type: 'record',
@@ -128,7 +140,12 @@ describe('hodiny', () => {
 describe('grid checkpointu', () => {
   it('skryje nepřítomné, řadí podle kategorie a čísla, ukáže lokální záznam jako čekající', () => {
     const ev = record('m2', FINISH, '2026-07-17T09:00:00.000Z');
-    const { entries, hidden } = checkpointEntries(snapshot(), [eventItem(ev)], FINISH, ME);
+    const { entries, hidden } = checkpointEntries(
+      snapshot(started('m1', 'm2', 'f1')),
+      [eventItem(ev)],
+      FINISH,
+      ME,
+    );
     expect(hidden).toBe(1);
     expect(entries.map((e) => e.participant.id)).toEqual(['m1', 'm2', 'f1']);
     const m2 = entries.find((e) => e.participant.id === 'm2')!;
@@ -159,13 +176,36 @@ describe('grid checkpointu', () => {
     };
     const bad = { ...eventItem(record('f1', FINISH, ev.ts), 'rejected'), error: 'nepřítomen' };
     const { entries } = checkpointEntries(
-      snapshot(),
+      snapshot(started('m1', 'f1')),
       [eventItem(ev), eventItem(cancel), bad],
       FINISH,
       ME,
     );
     expect(entries.find((e) => e.participant.id === 'm1')!.time).toBeNull();
     expect(entries.find((e) => e.participant.id === 'f1')!.rejected).toBe('nepřítomen');
+  });
+
+  it('za startem ukáže jen odstartované (i start zapsaný offline na tomto telefonu)', () => {
+    const local = eventItem(record('m2', START, '2026-07-17T08:00:00.000Z'));
+    const view = checkpointEntries(snapshot(started('m1')), [local], FINISH, ME);
+    expect(view.entries.map((e) => e.participant.id)).toEqual(['m1', 'm2']);
+    expect(view.notStarted).toBe(1);
+    // Na startu jsou vidět všichni přítomní.
+    expect(checkpointEntries(snapshot(), [], START, ME).entries).toHaveLength(3);
+  });
+
+  it('kdo tu už čas má, zůstane vidět i bez startu (aby šel zápis vrátit)', () => {
+    const ev = record('f1', FINISH, '2026-07-17T09:00:00.000Z');
+    const view = checkpointEntries(snapshot(), [eventItem(ev)], FINISH, ME);
+    expect(view.entries.map((e) => e.participant.id)).toEqual(['f1']);
+  });
+
+  it('uzavřená kategorie se v gridu nezobrazuje', () => {
+    const s = snapshot(started('m1', 'm2', 'f1'));
+    s.race.categories[0] = { ...s.race.categories[0]!, closedAt: '2026-07-17T10:00:00.000Z' };
+    const view = checkpointEntries(s, [], FINISH, ME);
+    expect(view.entries.map((e) => e.participant.id)).toEqual(['f1']);
+    expect(view.closed).toBe(2);
   });
 
   it('registrace na místě se hned objeví v gridu s předběžným číslem', () => {

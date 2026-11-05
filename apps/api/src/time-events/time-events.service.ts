@@ -3,13 +3,11 @@ import type { TimeEventInput, TimeEventResult } from '@triatlon/shared';
 import type { RequestUser } from '../auth/decorators';
 import type { TimeEvent } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
-import { RacesService } from '../races/races.service';
+import { isAdmin, RacesService } from '../races/races.service';
 import { RealtimeService } from '../realtime/realtime.service';
 
 /** Tolerance pro čas akce v budoucnosti (rozjeté hodiny zařízení). */
 const MAX_FUTURE_MS = 5 * 60 * 1000;
-
-const isAdmin = (u: RequestUser) => u.role === 'admin' || u.role === 'super_admin';
 
 class Rejected extends Error {}
 
@@ -79,6 +77,12 @@ export class TimeEventsService {
           throw new Rejected('Checkpoint neplatí pro kategorii závodníka.');
         }
         this.authorize(user, e, assigned, known);
+        // Uzavřená kategorie = oficiální výsledky; měnit je smí už jen admin (korekce s důvodem).
+        if (participant.category.closedAt && !isAdmin(user)) {
+          throw new Rejected(
+            'Kategorie je uzavřená — výsledky jsou oficiální. Obraťte se na admina.',
+          );
+        }
         if (Date.parse(e.ts) > Date.now() + MAX_FUTURE_MS) {
           throw new Rejected('Čas akce je v budoucnosti — zkontrolujte hodiny zařízení.');
         }

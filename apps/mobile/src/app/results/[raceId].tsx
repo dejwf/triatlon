@@ -1,14 +1,33 @@
 /** Průběžné a celkové výsledky (organizátor je vidí vždy). Offline ukazuje poslední stažené. */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { formatDuration, type ResultRow } from '@triatlon/shared';
-import { cachedResults, errorText, loadResults, useApp } from '../../store';
-import { Button, C, ErrorText, formatClock, Loading, Muted, s } from '../../ui';
+import { formatDuration, type CategoryResultsDto, type ResultRow } from '@triatlon/shared';
+import {
+  api,
+  cachedResults,
+  errorText,
+  loadResults,
+  refreshRace,
+  snapshotOf,
+  useApp,
+} from '../../store';
+import {
+  Button,
+  C,
+  Card,
+  ConfirmButton,
+  ErrorText,
+  formatClock,
+  Loading,
+  Muted,
+  s,
+} from '../../ui';
 
 const STATE: Record<ResultRow['state'], string> = {
   finished: 'v cíli',
   racing: 'na trati',
+  dnf: 'DNF',
   not_started: 'nestartoval',
   disqualified: 'DSQ',
 };
@@ -34,6 +53,10 @@ export default function Results() {
     const t = setInterval(reload, 20_000);
     return () => clearInterval(t);
   }, [reload]);
+
+  const isDirector =
+    useApp((st) => !!st.snapshots[raceId]?.race.isDirector) ||
+    !!snapshotOf(raceId)?.race.isDirector;
 
   if (!results) return error ? <ErrorText>{error}</ErrorText> : <Loading />;
   const categories = results.categories.filter((c) => c.counts.registered > 0);
@@ -87,6 +110,12 @@ export default function Results() {
           />
         </View>
         <ErrorText>{error}</ErrorText>
+        {category?.closedAt && !isDirector && (
+          <Muted>✓ Oficiální výsledky — kategorie uzavřena {formatClock(category.closedAt)}.</Muted>
+        )}
+        {category && isDirector && (
+          <CloseCategory raceId={raceId} category={category} onDone={reload} />
+        )}
       </View>
       <FlatList
         data={category?.rows ?? []}
@@ -123,5 +152,80 @@ export default function Results() {
         )}
       />
     </View>
+  );
+}
+
+/**
+ * Ředitel závodu uzavře kategorii (výsledky se stanou oficiálními, kdo je na trati = DNF),
+ * případně ji s důvodem znovu otevře. Jen online — rozhodnutí musí server potvrdit hned.
+ */
+function CloseCategory({
+  raceId,
+  category,
+  onDone,
+}: {
+  raceId: string;
+  category: CategoryResultsDto;
+  onDone: () => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const onCourse = category.rows.filter((r) => r.state === 'racing');
+  const path = `/races/${raceId}/categories/${category.categoryId}`;
+
+  function run(action: 'close' | 'reopen') {
+    setBusy(true);
+    setError(null);
+    api('POST', `${path}/${action}`, action === 'reopen' ? { reason } : undefined)
+      .then(() => {
+        setReason('');
+        onDone();
+        return refreshRace(raceId);
+      })
+      .catch((err) => setError(errorText(err)))
+      .finally(() => setBusy(false));
+  }
+
+  if (category.closedAt) {
+    return (
+      <Card style={{ backgroundColor: C.okBg, borderColor: C.ok }}>
+        <Text style={s.text}>
+          ✓ Kategorie uzavřena {formatClock(category.closedAt)} — výsledky jsou oficiální.
+        </Text>
+        <TextInput
+          value={reason}
+          onChangeText={setReason}
+          placeholder="Důvod znovuotevření"
+          style={[s.input, { paddingVertical: 8 }]}
+        />
+        <ConfirmButton
+          kind="secondary"
+          title="Znovu otevřít"
+          confirmTitle="Opravdu otevřít?"
+          disabled={busy || reason.trim().length < 3}
+          onConfirm={() => run('reopen')}
+        />
+        <ErrorText>{error}</ErrorText>
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <Muted>
+        {onCourse.length
+          ? `Na trati: ${onCourse.map((r) => r.bib).join(', ')} — po uzavření budou DNF.`
+          : 'Na trati nikdo není.'}
+      </Muted>
+      <ConfirmButton
+        title={`Uzavřít kategorii ${category.name}`}
+        confirmTitle={
+          onCourse.length ? `Uzavřít? ${onCourse.length}× DNF` : 'Opravdu uzavřít kategorii?'
+        }
+        disabled={busy || !category.startedAt}
+        onConfirm={() => run('close')}
+      />
+      <ErrorText>{error}</ErrorText>
+    </Card>
   );
 }

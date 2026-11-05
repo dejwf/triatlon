@@ -14,15 +14,16 @@ import {
   type OnSiteRegistrationResult,
   type ImportRowResult,
   type ParticipantDto,
+  type ParticipantExportDto,
   type ParticipantInput,
   type ParticipantUpdateInput,
   type RegistrationSource,
 } from '@triatlon/shared';
 import { AuditService } from '../audit/audit.service';
 import type { RequestUser } from '../auth/decorators';
-import type { Participant, Prisma } from '../generated/prisma/client';
+import { Prisma, type Participant } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
-import { RacesService } from '../races/races.service';
+import { isAdmin, RacesService } from '../races/races.service';
 import { RealtimeService } from '../realtime/realtime.service';
 
 type Tx = Prisma.TransactionClient;
@@ -66,6 +67,7 @@ export class ParticipantsService {
           gender: input.gender,
           locality: input.locality,
           registrationSource: source,
+          publicName: input.publicName ?? true,
         },
       });
       await this.audit.record(
@@ -112,7 +114,13 @@ export class ParticipantsService {
 
       const p = await tx.participant.update({
         where: { id },
-        data: { ...merged, categoryId: category.id, bib, status: input.status },
+        data: {
+          ...merged,
+          categoryId: category.id,
+          bib,
+          status: input.status,
+          publicName: input.publicName,
+        },
       });
       await this.audit.record(
         {
@@ -142,6 +150,7 @@ export class ParticipantsService {
     await this.races.assertStartAccess(user, raceId);
     const updated = await this.prisma.$transaction(async (tx) => {
       const before = await this.find(tx, raceId, id);
+      await this.assertOpen(tx, user, before.categoryId);
       if (before.status === 'disqualified') {
         throw new ConflictException('Závodník je diskvalifikován — stav může změnit jen admin.');
       }
@@ -186,6 +195,7 @@ export class ParticipantsService {
     }
     const created = await this.prisma.$transaction(async (tx) => {
       const category = await this.resolve(tx, raceId, input);
+      await this.assertOpen(tx, user, category.id);
       let bib = input.bib ?? (await this.nextBib(tx, category.id));
       const taken = await tx.participant.findUnique({
         where: { categoryId_bib: { categoryId: category.id, bib } },
@@ -349,7 +359,97 @@ export class ParticipantsService {
     return result;
   }
 
+  // ---------- GDPR ----------
+
+  /** Všechny osobní údaje závodníka v čitelné podobě (právo na přístup / přenositelnost). */
+  async export(user: RequestUser, raceId: string, id: string): Promise<ParticipantExportDto> {
+    const p = await this.prisma.participant.findFirst({
+      where: { id, raceId },
+      include: {
+        race: true,
+        category: true,
+        timeEvents: { include: { checkpoint: true }, orderBy: { serverReceivedAt: 'asc' } },
+      },
+    });
+    if (!p) throw new NotFoundException('Závodník nenalezen.');
+    await this.audit.record({
+      userId: user.id,
+      action: 'gdpr_export',
+      entity: 'participant',
+      entityId: id,
+    });
+    return {
+      exportedAt: new Date().toISOString(),
+      race: { name: p.race.name, year: p.race.year },
+      participant: {
+        firstName: p.firstName,
+        lastName: p.lastName,
+        birthYear: p.birthYear,
+        gender: p.gender,
+        locality: p.locality,
+        bib: p.bib,
+        category: p.category.name,
+        status: p.status,
+        registrationSource: p.registrationSource,
+        publicName: p.publicName,
+        createdAt: p.createdAt.toISOString(),
+      },
+      times: p.timeEvents.map((e) => ({
+        checkpoint: e.checkpoint.name,
+        type: e.type,
+        ts: e.ts.toISOString(),
+        note: e.note,
+      })),
+    };
+  }
+
+  /**
+   * Anonymizace (právo na výmaz): jméno se nahradí, jméno se skryje z veřejné tabule a z auditu
+   * se odstraní kopie osobních údajů. Ročník, kategorie, číslo a časy zůstanou — výsledky
+   * ostatních závodníků (pořadí) se nesmí změnit.
+   */
+  async anonymize(
+    user: RequestUser,
+    raceId: string,
+    id: string,
+    reason: string,
+  ): Promise<ParticipantDto> {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const before = await this.find(tx, raceId, id);
+      if (before.anonymizedAt) return toDto(before);
+      const p = await tx.participant.update({
+        where: { id },
+        data: {
+          firstName: 'Anonymizovaný',
+          lastName: 'závodník',
+          publicName: false,
+          anonymizedAt: new Date(),
+        },
+      });
+      await tx.auditLog.updateMany({
+        where: { entity: 'participant', entityId: id },
+        data: { before: Prisma.DbNull, after: Prisma.DbNull },
+      });
+      await this.audit.record(
+        { userId: user.id, action: 'anonymize', entity: 'participant', entityId: id, reason },
+        tx,
+      );
+      return toDto(p);
+    });
+    this.realtime.resultsChanged(raceId, [updated.categoryId]);
+    return updated;
+  }
+
   // ---------- pomocné ----------
+
+  /** Do uzavřené kategorie smí zasahovat už jen admin. */
+  private async assertOpen(tx: Tx, user: RequestUser, categoryId: string): Promise<void> {
+    if (isAdmin(user)) return;
+    const c = await tx.category.findUnique({ where: { id: categoryId } });
+    if (c?.closedAt) {
+      throw new ConflictException(`Kategorie ${c.name} je uzavřená — obraťte se na admina.`);
+    }
+  }
 
   private async find(tx: Tx, raceId: string, id: string): Promise<Participant> {
     const p = await tx.participant.findFirst({ where: { id, raceId } });
@@ -405,5 +505,7 @@ function toDto(p: Participant): ParticipantDto {
     locality: p.locality,
     status: p.status,
     registrationSource: p.registrationSource,
+    publicName: p.publicName,
+    anonymized: p.anonymizedAt !== null,
   };
 }

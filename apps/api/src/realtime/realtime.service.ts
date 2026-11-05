@@ -15,6 +15,11 @@ export class RealtimeService {
     if (ids.length) this.bus.next({ raceId, message: { type: 'results', categoryIds: ids } });
   }
 
+  /** Všechny změny (pro invalidaci cache veřejné tabule). */
+  all(): Observable<{ raceId: string; message: RealtimeMessage }> {
+    return this.bus.asObservable();
+  }
+
   stream(raceId: string): Observable<RealtimeMessage> {
     return this.bus.pipe(
       filter((e) => e.raceId === raceId),

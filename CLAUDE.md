@@ -7,7 +7,7 @@ Tento soubor popisuje požadavky a kontext pro implementaci systému pomocí Cla
 Systém pro organizátory amatérských vícedisciplinárních závodů (triatlon apod.), který umožňuje:
 - vytvářet závody a kategorie,
 - spravovat závodníky a jejich startovní čísla,
-- v den závodu zaznamenávat mezičasy na checkpointech přes mobilní aplikaci,
+- v den závodu zaznamenávat mezičasy na checkpointech přes appku (mobilní klient pro organizátory),
 - průběžně i finálně počítat a zobrazovat výsledky,
 - spravovat uživatele a role.
 
@@ -35,6 +35,7 @@ Hosting: zatím nerozhodnuto → stavět přenositelně: Docker image pro každo
 |---|---|
 | **Super admin** | Vše co admin + správa systému napříč všemi závody/organizacemi. |
 | **Admin** | Správa rolí a uživatelů; vytváření a správa závodů; správa kategorií; správa závodníků a jejich startovních čísel; přiřazování uživatelů (organizátorů) k závodům; korekce nerozhodných/sporných výsledků (manuální zásah do zaznamenaných časů s auditním záznamem). |
+| **Ředitel závodu** | Oprávnění organizátora v rámci konkrétního závodu (uděluje admin v záložce Organizátoři): **uzavírá kategorie** (výsledky se stanou oficiálními) a s důvodem je znovu otevírá — z webu i z appky. Vidí závod i bez přiřazeného checkpointu. Admin smí totéž vždy. |
 | **Organizátor** | Zadává mezičasy závodníků na checkpointu; může přepínat mezi závody/kategoriemi, ke kterým má přiřazení; vidí průběžné i celkové výsledky; zadává poznámky k mezičasům; může na místě (při check-inu) zaregistrovat nového závodníka. Nemá právo měnit již zaznamenaná data jiných organizátorů ani měnit pořadí. |
 | **Veřejnost (anonym)** | Bez přihlášení; pouze čtení veřejné výsledkové tabule (živé i finální výsledky) a odeslání online registrace. |
 
@@ -54,6 +55,7 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
   - věkové skupiny — **definuje je admin** pro každý závod (nic hardcoded); hranice jsou včetně a skupiny se nesmí překrývat, např. 0–5, 6–8, 9–10, 11–15, 16–30, 31–40, 41–50, 51+; věk se počítá podle **ročníku narození**: `věk = rok závodu − rok narození` (datum narození v roce nerozhoduje). Kategorie si proto drží rozsah ročníků odvozený z věkové skupiny a roku závodu,
   - pohlaví (muži / ženy),
   - lokality (local / guest).
+- Stav: **otevřená / uzavřená**. Uzavírá ředitel závodu (nebo admin), až kategorie doběhne: výsledky jsou **oficiální**, kdo má start, ale ne cíl, je **DNF** (nedokončil), organizátoři už do kategorie nezapisují (časy, check-in, registrace na místě), admin může dál korigovat s důvodem. Uzavřít lze jen odstartovanou kategorii; znovuotevření vyžaduje důvod; obojí je v auditu. Uzavřením poslední kategorie přejde závod do stavu _dokončen_, znovuotevřením zpět do _probíhá_.
 - Každá kategorie má vlastní definici tras (délka plavání, kola, běhu) — tedy i vlastní definici/mapování checkpointů s očekávanou vzdáleností, pokud bude potřeba počítat tempo.
 
 ### Závodník (Participant)
@@ -137,20 +139,31 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 - Průběžné pořadí: řazení podle posledního dosaženého checkpointu a jeho času; u závodníků se stejným posledním checkpointem řazení podle času.
 - Řazení/výsledky vždy v rámci kategorie (napříč kategoriemi srovnání časů nedává smysl kvůli různé délce trasy).
 - Nerozhodný výsledek: admin má nástroj pro ruční určení pořadí se zápisem důvodu (auditováno).
+- **DNF**: v uzavřené kategorii je závodník se startem a bez cíle „nedokončil“ a nemá pořadí (dokud je kategorie otevřená, je „na trati“ s průběžným pořadím).
 - **Přesnost pořadí: celé sekundy** — časy ve stejné sekundě jsou remíza (stejné pořadí), dokud ji admin ručně nerozhodne; rozhodnutí platí jen pro přesně tutéž skupinu závodníků.
 - **Konflikt záznamů**: víc platných záznamů téhož závodníka na stejném checkpointu (např. dva organizátoři) → platí dřívější a výsledky ho označí k ověření adminem.
 - Výpočet je čistá funkce nad append-only logem (`packages/shared/src/results.ts`): `record` / `cancel` (vrácení) / `admin_correction` (oprava s `refEventId`, nebo doplnění chybějícího času bez něj — vždy s důvodem) / `note`.
 
-## 7a. Mobilní appka — implementační rozhodnutí (F3)
+## 7a. Appka — implementační rozhodnutí (F3)
+
+Mobilnímu klientovi se v projektu říká **appka** (skloňováno podle vzoru žena).
+
 
 - `apps/mobile` (Expo SDK 58, Expo Router). Data závodu (závod, závodníci, log akcí) se ukládají do telefonu (SQLite) → appka funguje bez signálu i po restartu.
 - **Offline fronta** (`src/lib/outbox.ts`): akce se uloží synchronně před potvrzením v UI, odesílají se přísně v pořadí vzniku (registrace na místě před časy toho závodníka), zápisy časů dávkou. Síťová chyba / 5xx / 401 → zkusí znovu; 4xx nebo `rejected` → označí se a obsluha je vidí v „Synchronizace“.
 - **Zobrazení na checkpointu** (`src/lib/view.ts`) = snapshot ze serveru + neodeslané akce, přes stejnou projekci jako server (`projectEvents`).
+- **Grid na checkpointu za startem ukazuje jen odstartované závodníky** (platný start ze serveru nebo z fronty tohoto telefonu) — jinak by šlo zapsat mezičas před startem a vznikly by záporné časy. Kdo už na checkpointu čas má, zůstává vidět (aby šel zápis vrátit). Závodníci uzavřených kategorií se nezobrazují.
 - **Hodiny**: offset vůči `GET /api/time` (vzorek s nejkratší odezvou), každých 5 min; čas akce = hodiny telefonu + offset − volitelný odečet reakční doby (0–1 s, nastavení zařízení).
 - **Check-in** `POST /races/:id/participants/:pid/status` a **registrace na místě** `POST /races/:id/participants/on-site` smí admin nebo organizátor přiřazený ke startu (start = první `transition` checkpoint bez disciplíny). Registrace je idempotentní podle UUID z appky; obsazené navržené číslo server nahradí dalším volným a appka obsluhu upozorní, ať vymění startovní číslo.
 - `GET /races/:id/time-events` vrací log akcí (všech zařízení) pro offline snapshot; detail závodu nese `myCheckpointIds`.
 - Hromadný start zapíše stejný čas všem přítomným bez startu; „vrátit start“ zruší starty kategorie zapsané tímto organizátorem.
 - Přihlášení v appce kódem z e-mailu (odkaz v e-mailu vede na web). Vypršelá session frontu nemaže — odešle se po přihlášení téhož uživatele.
+
+## 7b. Veřejná tabule, GDPR, nasazení — implementační rozhodnutí (F4)
+
+- **Veřejná tabule** `/vysledky` (web, bez přihlášení) z `GET /api/public/races…` + živý kanál `…/stream` (EventSource). Viditelné jsou jen závody ve stavu _probíhá_ / _dokončen_. Zobrazuje pořadí, číslo, jméno, mezičasy od startu a celkový čas — **bez ročníku**, interních ID, poznámek a autorů záznamů. Výsledky se počítají jednou pro všechny diváky (cache zneplatněná při změně).
+- **GDPR**: závodník může odmítnout zveřejnění jména (`publicName` → na tabuli jen číslo); admin umí **export údajů** (JSON) a **anonymizaci** (jméno nahrazeno, kopie údajů z auditu odstraněny, časy a pořadí zůstávají, aby se neměnily výsledky ostatních). Informace pro závodníky na `/ochrana-osobnich-udaju` (pořadatel se doplní při buildu). Online formulář a souhlasy řeší až online registrace (mimo MVP).
+- **Nasazení** (`deploy/`, `Dockerfile`): Docker Compose na jednom serveru — Postgres, API (migrace při startu), Caddy (web + proxy + automatické HTTPS), pravidelné zálohy `pg_dump`. Postup v [`deploy/README.md`](deploy/README.md).
 
 ## 8. Nefunkční požadavky
 
@@ -174,5 +187,6 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 ## 10. Otevřené body (k doplnění)
 
 1. **Flow diagramy** od uživatele pro mobilní UX (přislíbeno dodat). Zatím návrhové diagramy v [`docs/diagramy.md`](docs/diagramy.md) včetně seznamu otevřených otázek k ověření.
-2. **Hosting/cloud provider** — self-hosted Kubernetes vs. managed cloud; zatím stavět přenositelně (Docker, docker-compose).
+2. **Hosting/cloud provider** — připraveno nasazení přes Docker Compose na libovolný server v EU (`deploy/`); konkrétního poskytovatele, doménu a SMTP poskytovatele je třeba vybrat.
+4. **Text o zpracování osobních údajů** (`/ochrana-osobnich-udaju`) — nechat ověřit, doplnit pořadatele (IČO, adresa) a dobu uchování.
 3. ~~Sub-checkpointy v mobilní appce a ve výsledcích~~ — hotovo: ve výsledcích jako mezičasy (F2), v appce se zapisují gridem jako ostatní checkpointy (F3).

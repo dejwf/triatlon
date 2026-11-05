@@ -17,6 +17,7 @@ import { ParticipantPanel } from './ParticipantPanel';
 const STATE_LABEL: Record<ResultRow['state'], string> = {
   finished: 'v cíli',
   racing: 'na trati',
+  dnf: 'nedokončil (DNF)',
   not_started: 'nestartoval',
   disqualified: 'DSQ',
 };
@@ -50,6 +51,7 @@ export function ResultsTab() {
         >
           {withParticipants.map((c) => (
             <option key={c.categoryId} value={c.categoryId}>
+              {c.closedAt ? '✓ ' : ''}
               {c.name} ({c.counts.finished}/{c.counts.registered - c.counts.absent} v cíli)
             </option>
           ))}
@@ -63,6 +65,7 @@ export function ResultsTab() {
         <p className="muted">Žádná kategorie se závodníky.</p>
       ) : (
         <>
+          <CloseCategory race={race.data} category={category} users={results.data.users} />
           <Ties race={race.data} category={category} />
           <ResultsTable
             race={race.data}
@@ -193,6 +196,90 @@ function ResultsTable({
         })}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * Uzavření kategorie ředitelem závodu (nebo adminem): výsledky se stanou oficiálními, kdo je
+ * ještě na trati, nedokončil (DNF), organizátoři už do kategorie nezapisují.
+ */
+function CloseCategory({
+  race,
+  category,
+  users,
+}: {
+  race: RaceDetailDto;
+  category: CategoryResultsDto;
+  users: Record<string, string>;
+}) {
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState('');
+  const path = `/races/${race.id}/categories/${category.categoryId}`;
+  const done = async () => {
+    setReason('');
+    await queryClient.invalidateQueries({ queryKey: keys.results(race.id) });
+    await queryClient.invalidateQueries({ queryKey: keys.race(race.id) });
+  };
+  const close = useMutation({ mutationFn: () => http.post(`${path}/close`), onSuccess: done });
+  const reopen = useMutation({
+    mutationFn: () => http.post(`${path}/reopen`, { reason }),
+    onSuccess: done,
+  });
+  const onCourse = category.rows.filter((r) => r.state === 'racing');
+
+  if (category.closedAt) {
+    return (
+      <div className="card stack">
+        <p className="ok">
+          ✓ Oficiální výsledky — kategorie uzavřena{' '}
+          {new Date(category.closedAt).toLocaleString('cs')}
+          {category.closedBy && ` (${users[category.closedBy] ?? 'neznámý'})`}. Organizátoři už do
+          ní nezapisují; admin může časy korigovat.
+        </p>
+        {race.isDirector && (
+          <form
+            className="row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              reopen.mutate();
+            }}
+          >
+            <input
+              required
+              minLength={3}
+              placeholder="Důvod znovuotevření"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <button disabled={reopen.isPending}>Znovu otevřít</button>
+          </form>
+        )}
+        <ErrorBox error={reopen.error} />
+      </div>
+    );
+  }
+  if (!race.isDirector || !category.startedAt) return null;
+  return (
+    <div className="card row">
+      <span className="muted">
+        {onCourse.length
+          ? `Na trati: ${onCourse.map((r) => `${r.bib} ${r.lastName}`).join(', ')} — po uzavření nedokončili (DNF).`
+          : 'Na trati už nikdo není.'}
+      </span>
+      <button
+        className="primary"
+        disabled={close.isPending}
+        onClick={() => {
+          const msg = onCourse.length
+            ? `Uzavřít kategorii ${category.name}? ${onCourse.length} závodníků na trati bude DNF.`
+            : `Uzavřít kategorii ${category.name}? Výsledky budou oficiální.`;
+          if (window.confirm(msg)) close.mutate();
+        }}
+      >
+        Uzavřít kategorii
+      </button>
+      <ErrorBox error={close.error} />
+    </div>
   );
 }
 

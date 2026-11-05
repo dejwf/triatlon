@@ -74,6 +74,8 @@ export const ParticipantInput = z.object({
   locality: Locality,
   /** Startovní číslo; když chybí, přidělí se další volné v kategorii. */
   bib: z.number().int().min(1).max(99_999).optional(),
+  /** Zobrazit jméno na veřejné výsledkové tabuli (GDPR — závodník může odmítnout). */
+  publicName: z.boolean().optional(),
 });
 export type ParticipantInput = z.infer<typeof ParticipantInput>;
 
@@ -126,6 +128,22 @@ export type UserUpdateInput = z.infer<typeof UserUpdateInput>;
 export const AssignmentsInput = z.object({ checkpointIds: z.array(Id) });
 export type AssignmentsInput = z.infer<typeof AssignmentsInput>;
 
+/** Ředitel závodu: uzavírá a znovu otevírá kategorie (výsledky se stávají oficiálními). */
+export const DirectorInput = z.object({ director: z.boolean() });
+export type DirectorInput = z.infer<typeof DirectorInput>;
+
+/** Znovuotevření uzavřené kategorie — vždy s důvodem (auditováno). */
+export const CategoryReopenInput = z.object({
+  reason: z.string().trim().min(3, 'Uveďte důvod.').max(1000),
+});
+export type CategoryReopenInput = z.infer<typeof CategoryReopenInput>;
+
+/** GDPR: anonymizace osobních údajů závodníka (výsledky a log časů zůstanou). */
+export const AnonymizeInput = z.object({
+  reason: z.string().trim().min(3, 'Uveďte důvod.').max(1000),
+});
+export type AnonymizeInput = z.infer<typeof AnonymizeInput>;
+
 // ---------- Odpovědi API (DTO) ----------
 
 export interface DisciplineDto {
@@ -153,6 +171,8 @@ export interface CategoryDto {
   distances: { swim?: number | null; bike?: number | null; run?: number | null } | null;
   checkpointIds: string[];
   participantCount: number;
+  /** Kategorie uzavřená ředitelem závodu — výsledky jsou oficiální; null = otevřená. */
+  closedAt: string | null;
 }
 
 export interface RaceSummaryDto {
@@ -171,6 +191,8 @@ export interface RaceDetailDto extends RaceSummaryDto {
   categories: CategoryDto[];
   /** Checkpointy, na které smí přihlášený uživatel zapisovat (admin: všechny). */
   myCheckpointIds: string[];
+  /** Přihlášený uživatel smí uzavírat kategorie (ředitel závodu nebo admin). */
+  isDirector: boolean;
 }
 
 export interface ParticipantDto {
@@ -184,6 +206,9 @@ export interface ParticipantDto {
   locality: Locality;
   status: ParticipantStatus;
   registrationSource: RegistrationSource;
+  publicName: boolean;
+  /** Osobní údaje byly anonymizovány (GDPR). */
+  anonymized: boolean;
 }
 
 export interface UserDto {

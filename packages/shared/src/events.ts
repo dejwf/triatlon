@@ -35,6 +35,9 @@ export interface CategoryResultsDto extends CategoryResults {
   categoryId: string;
   name: string;
   overrides: RankingOverrideDto[];
+  /** Uzavřeno (oficiální výsledky); null = otevřená. */
+  closedAt: string | null;
+  closedBy: string | null;
 }
 
 export interface RaceResultsDto {

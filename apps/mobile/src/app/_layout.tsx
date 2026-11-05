@@ -26,6 +26,8 @@ export default function RootLayout() {
           headerRight: loggedIn ? () => <SyncBadge /> : undefined,
         }}
       >
+        {/* Bez přihlášení je dostupné jen přihlášení — jinak by appka na telefonu mohla
+            otevřít jinou nechráněnou obrazovku místo něj. */}
         <Stack.Protected guard={!loggedIn}>
           <Stack.Screen name="login" options={{ title: 'Přihlášení', headerRight: undefined }} />
         </Stack.Protected>
@@ -36,8 +38,8 @@ export default function RootLayout() {
             options={{ title: 'Checkpoint' }}
           />
           <Stack.Screen name="results/[raceId]" options={{ title: 'Výsledky' }} />
+          <Stack.Screen name="sync" options={{ title: 'Synchronizace a zařízení' }} />
         </Stack.Protected>
-        <Stack.Screen name="sync" options={{ title: 'Synchronizace a zařízení' }} />
       </Stack>
     </>
   );

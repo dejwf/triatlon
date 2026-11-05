@@ -5,7 +5,7 @@ Appka pro organizátory na checkpointech: grid čísel, poznámky a vrácení ak
 ## Spuštění při vývoji
 
 1. Běží API (`pnpm --filter @triatlon/api dev`) a `@triatlon/shared` je zbuildovaný (`pnpm --filter @triatlon/shared build`).
-2. Adresa API: zkopírujte `.env.example` na `.env.local`. Na fyzickém telefonu nastavte IP adresu počítače v síti, např. `EXPO_PUBLIC_API_URL=http://192.168.1.20:3000/api`.
+2. Adresa API: appka ve vývoji sama použije počítač, na kterém běží Expo dev server (stejná IP jako v QR kódu), port 3000 — telefon musí být ve stejné Wi-Fi. Jiný server nastavíte v `.env.local` přes `EXPO_PUBLIC_API_URL` (viz `.env.example`).
 3. `pnpm --filter @triatlon/mobile start` a pak:
    - **telefon**: appka používá nativní moduly (SQLite, SecureStore), proto potřebuje development build (`npx expo run:ios` / `run:android`, nebo `eas build --profile development`),
    - **prohlížeč** (rychlé zkoušení UI): klávesa `w`. Data se ukládají do localStorage; API musí povolit origin (`CORS_ORIGINS=http://localhost:8081` v `.env`).

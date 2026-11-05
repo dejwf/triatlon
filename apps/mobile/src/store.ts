@@ -5,6 +5,8 @@
  */
 import { useSyncExternalStore } from 'react';
 import * as Crypto from 'expo-crypto';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import type {
   AuthTokens,
   CheckInStatus,
@@ -24,10 +26,19 @@ import type { RaceSnapshot } from './lib/view';
 import { secure } from './secure';
 import { load, save } from './storage';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api').replace(
-  /\/$/,
-  '',
-);
+/**
+ * Adresa API: `EXPO_PUBLIC_API_URL`, jinak ve vývoji počítač, na kterém běží Expo dev server
+ * (telefon v téže síti ho zná z `hostUri`; „localhost“ by na telefonu znamenal telefon sám).
+ */
+function defaultApiUrl(): string {
+  const host =
+    Platform.OS === 'web'
+      ? globalThis.location?.hostname
+      : Constants.expoConfig?.hostUri?.split(':')[0];
+  return `http://${host || 'localhost'}:3000/api`;
+}
+
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL || defaultApiUrl()).replace(/\/$/, '');
 
 export const uuid = (): string => Crypto.randomUUID();
 

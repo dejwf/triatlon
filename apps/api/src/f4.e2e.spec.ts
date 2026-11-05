@@ -184,6 +184,11 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
 
   it('veřejná tabule: bez přihlášení, jen po startu závodu, bez skrytých jmen a interních údajů', async () => {
     const path = `/public/races/${race.id}/results`;
+    // První zapsaný čas (v before) přepnul plánovaný závod na „probíhá“ → je veřejný.
+    const detail = await t.request('GET', `/races/${race.id}`, undefined, admin);
+    assert.equal(detail.body.status, 'running');
+    // Plánovaný závod veřejný není.
+    await t.request('PATCH', `/races/${race.id}`, { status: 'planned' }, admin);
     assert.equal((await t.request('GET', path)).status, 404);
     await t.request('PATCH', `/races/${race.id}`, { status: 'running' }, admin);
 

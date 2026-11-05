@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { TimeEventInput, TimeEventResult } from '@triatlon/shared';
 import type { RequestUser } from '../auth/decorators';
 import type { TimeEvent } from '../generated/prisma/client';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma.service';
 import { isAdmin, RacesService } from '../races/races.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -22,6 +23,7 @@ export class TimeEventsService {
     private readonly prisma: PrismaService,
     private readonly races: RacesService,
     private readonly realtime: RealtimeService,
+    private readonly audit: AuditService,
   ) {}
 
   async ingest(
@@ -116,6 +118,7 @@ export class TimeEventsService {
       }
     }
 
+    if (changedCategories.size) await this.markRunning(user, raceId);
     this.realtime.resultsChanged(raceId, changedCategories);
     return results;
   }
@@ -164,6 +167,28 @@ export class TimeEventsService {
         if (!admin) throw new Rejected('Korekce času smí provést jen admin.');
         if (!e.reason?.trim()) throw new Rejected('Korekce času vyžaduje důvod.');
         return;
+    }
+  }
+
+  /**
+   * První přijatý záznam v plánovaném závodě ho přepne do stavu „probíhá“ — závod se tím
+   * objeví na veřejné tabuli, aniž by na to admin musel v den závodu myslet.
+   */
+  private async markRunning(user: RequestUser, raceId: string): Promise<void> {
+    const { count } = await this.prisma.race.updateMany({
+      where: { id: raceId, status: 'planned' },
+      data: { status: 'running' },
+    });
+    if (count) {
+      await this.audit.record({
+        userId: user.id,
+        action: 'update',
+        entity: 'race',
+        entityId: raceId,
+        before: { status: 'planned' },
+        after: { status: 'running' },
+        reason: 'První zapsaný čas v závodě.',
+      });
     }
   }
 }

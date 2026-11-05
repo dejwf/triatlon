@@ -55,7 +55,9 @@ export class PublicService implements OnModuleDestroy {
     if (!race) throw new NotFoundException('Závod nenalezen.');
   }
 
-  raceResults(raceId: string): Promise<PublicRaceResultsDto> {
+  async raceResults(raceId: string): Promise<PublicRaceResultsDto> {
+    // Viditelnost se ověřuje vždy (levný dotaz) — závod mohl být mezitím vrácen do „plánovaný“.
+    await this.assertVisible(raceId);
     const hit = this.cache.get(raceId);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
     const value = this.build(raceId);

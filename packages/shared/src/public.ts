@@ -23,6 +23,9 @@ export interface PublicResultRowDto {
   state: ResultState;
   rank: number | null;
   tied: boolean;
+  /** Pořadí ve vlastní kategorii (domácí / hosté zvlášť) — oficiální pro vyhlášení. */
+  categoryRank: number | null;
+  categoryTied: boolean;
   totalMs: number | null;
   /** Čas od startu na každém checkpointu kategorie (null = ještě neprojel). */
   splitsMs: (number | null)[];

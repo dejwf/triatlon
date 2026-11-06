@@ -177,7 +177,10 @@ export function PublicBoard() {
       )}
       <p className="muted small">
         Pořadí na celé sekundy. U závodníků na trati je pořadí průběžné (podle posledního
-        checkpointu). Aktualizováno {new Date(results.data.generatedAt).toLocaleTimeString('cs')}.
+        checkpointu).
+        {!split &&
+          ' V závorce je pořadí v kategorii domácích (D) nebo hostů (H).'} Aktualizováno{' '}
+        {new Date(results.data.generatedAt).toLocaleTimeString('cs')}.
       </p>
     </div>
   );
@@ -219,7 +222,12 @@ function CategoryBoard({
       <table className="results public-results">
         <thead>
           <tr>
-            <th className="num">Poř.</th>
+            <th
+              className="num"
+              title={combined ? 'Společné pořadí (v závorce pořadí v kategorii)' : undefined}
+            >
+              Poř.
+            </th>
             <th className="num">Č.</th>
             {combined && (
               <th className="loc-col" title="D = domácí, H = host">
@@ -246,6 +254,16 @@ function CategoryBoard({
                 <td className="num">
                   <strong>{r.rank ?? '—'}</strong>
                   {r.tied ? '=' : ''}
+                  {combined && r.categoryRank !== null && (
+                    <span
+                      className="muted small cat-rank"
+                      title={`Pořadí v kategorii ${r.locality === 'local' ? 'domácích' : 'hostů'}`}
+                    >
+                      {' '}
+                      ({r.categoryRank}.{r.categoryTied ? '=' : ''}{' '}
+                      {r.locality === 'local' ? 'D' : 'H'})
+                    </span>
+                  )}
                 </td>
                 <td className="num">{r.bib}</td>
                 {combined && (

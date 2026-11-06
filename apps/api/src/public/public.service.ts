@@ -94,6 +94,10 @@ export class PublicService implements OnModuleDestroy {
     const metaById = new Map(meta.map((c) => [c.id, c]));
     const seqOf = new Map(race.checkpoints.map((c) => [c.id, c.seq]));
     const shown = results.categories.filter((c) => c.counts.registered > 0);
+    // Pořadí v kategorii — ve společné tabulce domácích a hostů se zobrazí vedle společného.
+    const inCategory = new Map(
+      shown.flatMap((c) => c.rows.map((r) => [r.participantId, { rank: r.rank, tied: r.tied }])),
+    );
 
     type Row = ResultRow & { locality: 'local' | 'guest' };
     const withLocality = (c: CategoryResultsDto): Row[] =>
@@ -131,6 +135,8 @@ export class PublicService implements OnModuleDestroy {
             state: r.state,
             rank: r.rank,
             tied: r.tied,
+            categoryRank: inCategory.get(r.participantId)?.rank ?? null,
+            categoryTied: inCategory.get(r.participantId)?.tied ?? false,
             totalMs: r.totalMs,
             splitsMs: checkpointIds.map((id) => splits.get(id) ?? null),
             disciplinesMs: r.disciplines.map((d) => d.ms),

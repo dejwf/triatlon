@@ -410,6 +410,10 @@ tr.sub-row td:first-child {
   color: var(--muted);
 }
 
+.public-results .cat-rank {
+  white-space: nowrap;
+}
+
 .prose {
   max-width: 46rem;
 }

@@ -254,10 +254,10 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
     assert.equal(group.name, '31–40 muži');
     assert.deepEqual(new Set(group.categoryIds), new Set([categoryId, guest.categoryId]));
     assert.deepEqual(
-      group.rows.slice(0, 2).map((r) => [r.bib, r.locality, r.rank]),
+      group.rows.slice(0, 2).map((r) => [r.bib, r.locality, r.rank, r.categoryRank]),
       [
-        [1, 'guest', 1],
-        [1, 'local', 2],
+        [1, 'guest', 1, 1],
+        [1, 'local', 2, 1],
       ],
     );
     // V kategorii domácích zůstává vlastní pořadí.

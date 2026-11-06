@@ -1,0 +1,146 @@
+# Nasazení na server přes SSH: testy (ci.yml) → build image (amd64 + arm64) do GitHub Container
+# Registry → na serveru `docker compose pull && up -d` (migrace databáze provede API při startu).
+#
+# Spouští se ručně (Actions → Nasazení → Run workflow), nikdy samo — v den závodu se nenasazuje.
+# Cíl = GitHub Environment (např. `test` = server u souseda, `produkce` = VPS) s nastavením:
+#   secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS, (DEPLOY_PORT)
+#   vars:    DEPLOY_URL (např. https://triatlon.vlkancice.cz), DEPLOY_PATH (výchozí /opt/triatlon),
+#            ORGANIZER_NAME, ORGANIZER_CONTACT (zapéká se do webu — stránka o osobních údajích)
+# Postup prvního nastavení serveru: HOSTING_V_OBCI_ALADIN.md a deploy/README.md.
+name: Nasazení
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Cílový server (GitHub Environment)
+        type: choice
+        options: [test, produkce]
+        default: test
+      tag:
+        description: 'Návrat ke dřívější verzi: tag image (commit SHA). Prázdné = sestavit aktuální verzi.'
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    if: inputs.tag == ''
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    if: inputs.tag == ''
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: |
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # amd64 (VPS, mini PC) i arm64 (Raspberry Pi).
+      - name: Image API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.registry }}/triatlon-api:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      # Web má v sobě údaje pořadatele → image pro každé prostředí zvlášť.
+      - name: Image webu
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VITE_ORGANIZER_NAME=${{ vars.ORGANIZER_NAME }}
+            VITE_ORGANIZER_CONTACT=${{ vars.ORGANIZER_CONTACT }}
+          tags: ${{ steps.meta.outputs.registry }}/triatlon-web:${{ steps.meta.outputs.tag }}-${{ inputs.environment }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  deploy:
+    needs: build
+    # Při návratu k dřívější verzi (tag) se ci i build přeskočí.
+    if: ${{ !cancelled() && !failure() }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.DEPLOY_URL }}
+    env:
+      TAG: ${{ inputs.tag || needs.build.outputs.tag }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/triatlon' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH klíč
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<CFG
+          Host server
+            HostName ${{ secrets.DEPLOY_HOST }}
+            Port ${{ secrets.DEPLOY_PORT || 22 }}
+            User ${{ secrets.DEPLOY_USER }}
+            IdentityFile ~/.ssh/id_deploy
+            StrictHostKeyChecking yes
+          CFG
+      - name: Konfigurace na server
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          printf 'API_IMAGE=%s\nWEB_IMAGE=%s\n' \
+            "$registry/triatlon-api:$TAG" "$registry/triatlon-web:$TAG-${{ inputs.environment }}" \
+            > images.env
+          ssh server "mkdir -p '$DEPLOY_PATH/backups'"
+          scp deploy/docker-compose.yml deploy/backup.sh images.env "server:$DEPLOY_PATH/"
+      - name: Přihlášení serveru do registru image (token platí jen po dobu běhu)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | ssh server "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+      - name: Záloha databáze, stažení image a restart
+        run: |
+          ssh server "set -e
+            cd '$DEPLOY_PATH'
+            test -f .env.prod || { echo 'Na serveru chybí $DEPLOY_PATH/.env.prod (viz deploy/README.md).'; exit 1; }
+            chmod +x backup.sh
+            compose='docker compose --env-file .env.prod --env-file images.env'
+            # Záloha před nasazením (při prvním nasazení databáze ještě neběží).
+            if \$compose ps --status running postgres | grep -q postgres; then
+              \$compose exec -T postgres sh -c 'pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"' \
+                | gzip > backups/pred-nasazenim-\$(date +%Y%m%d-%H%M%S).sql.gz
+            fi
+            \$compose pull api web
+            \$compose up -d --remove-orphans
+            docker image prune -f"
+      - name: Odhlášení serveru z registru
+        if: always()
+        run: ssh server "docker logout ghcr.io" || true
+      - name: Kontrola, že server odpovídá
+        if: vars.DEPLOY_URL != ''
+        run: |
+          curl -fsS --retry 20 --retry-delay 5 --retry-all-errors "${{ vars.DEPLOY_URL }}/api/health"
+          echo
+          echo "Nasazeno: $TAG → ${{ vars.DEPLOY_URL }}"

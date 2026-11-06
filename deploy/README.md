@@ -28,7 +28,27 @@ u libovolného poskytovatele. Hosting zůstává přenositelný, protože jde je
 
 Veřejná tabule je na `https://<doména>/vysledky` a zobrazuje závody ve stavu _probíhá_ nebo _dokončen_.
 
-## Aktualizace
+## Nasazení z GitHubu (doporučeno)
+
+Workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) se spouští ručně
+(**Actions → Nasazení → Run workflow**, volba prostředí `test` / `produkce`). Postup:
+
+1. otestuje kód (CI);
+2. sestaví image pro amd64 i arm64 do GitHub Container Registry;
+3. na server přes SSH nahraje `docker-compose.yml`, `backup.sh` a `images.env` (které image běží);
+4. zazálohuje databázi a provede `pull` a `up -d`;
+5. ověří `/api/health`.
+
+Server tak nic nestaví a stačí mu méně paměti. Přístupy k serveru jsou v GitHub Environment,
+hesla zůstávají jen v `.env.prod` na serveru. **Návrat k dřívější verzi:** spustit workflow
+s vyplněným _tag_ (prvních 12 znaků commitu).
+
+Nastavení serveru a GitHubu krok za krokem popisuje
+[`HOSTING_V_OBCI_ALADIN.md`](../HOSTING_V_OBCI_ALADIN.md). Pro VPS je postup stejný, jen bez
+routeru a s doménou místo sslip.io. Příkazy na serveru se pak spouštějí s oběma soubory:
+`docker compose --env-file .env.prod --env-file images.env …`.
+
+## Aktualizace (build na serveru)
 
 ```sh
 git pull

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Volá ho i nasazení (deploy.yml) — nasadí se jen otestovaný kód.
+  workflow_call:
 
 jobs:
   check:

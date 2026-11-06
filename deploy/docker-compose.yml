@@ -1,6 +1,8 @@
 # Produkční nasazení na jeden server (VPS v EU). Spuštění v adresáři deploy/:
 #   cp .env.prod.example .env.prod   # a vyplnit
-#   docker compose --env-file .env.prod up -d --build
+#   docker compose --env-file .env.prod up -d --build      # build přímo na serveru
+# Nebo hotové image z GitHub Actions (deploy.yml) — API_IMAGE / WEB_IMAGE v images.env:
+#   docker compose --env-file .env.prod --env-file images.env up -d
 name: triatlon
 
 services:
@@ -19,6 +21,7 @@ services:
       retries: 20
 
   api:
+    image: ${API_IMAGE:-triatlon-api:local}
     build: { context: .., target: api }
     restart: unless-stopped
     depends_on:
@@ -40,6 +43,7 @@ services:
       retries: 10
 
   web:
+    image: ${WEB_IMAGE:-triatlon-web:local}
     build:
       context: ..
       target: web

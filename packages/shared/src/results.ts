@@ -42,6 +42,8 @@ export interface ResultParticipant {
   firstName: string;
   lastName: string;
   status: ParticipantStatus;
+  /** Zobrazovaný název ve výsledcích (`displayNames`); výchozí „Jméno Příjmení“. */
+  displayName?: string;
 }
 
 /** Platný čas závodníka na checkpointu po aplikaci zrušení a korekcí. */
@@ -166,6 +168,8 @@ export interface ResultRow {
   bib: number;
   firstName: string;
   lastName: string;
+  /** Zobrazovaný název (formální / neformální oslovení, viz `displayNames`). */
+  displayName: string;
   status: ParticipantStatus;
   state: ResultState;
   /** Pořadí (průběžné u nedokončených); null = nestartoval / diskvalifikován. */
@@ -282,6 +286,7 @@ export function computeCategoryResults(input: {
       bib: p.bib,
       firstName: p.firstName,
       lastName: p.lastName,
+      displayName: p.displayName ?? `${p.firstName} ${p.lastName}`,
       status: p.status,
       state,
       rank: null,

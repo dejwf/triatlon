@@ -313,15 +313,17 @@ export function PrivacyPage() {
       <ul>
         <li>
           <strong>Jméno, příjmení, ročník narození, pohlaví, místní / host</strong> — zařazení do
-          kategorie a vyhodnocení závodu (plnění smlouvy o účasti v závodě).
+          kategorie a vyhodnocení závodu (plnění smlouvy o účasti v závodě). Volitelně{' '}
+          <strong>přezdívka</strong> a volba oslovení ve výsledcích (formálně / neformálně).
         </li>
         <li>
           <strong>Startovní číslo a naměřené časy</strong> — měření a výsledky.
         </li>
         <li>
-          <strong>Zveřejnění výsledků</strong> (jméno, kategorie, číslo, časy) na této stránce —
-          oprávněný zájem pořadatele na zveřejnění výsledků sportovní akce. Ročník narození se
-          nezveřejňuje.
+          <strong>Zveřejnění výsledků</strong> (jméno, případně přezdívka, kategorie, číslo, časy)
+          na této stránce — oprávněný zájem pořadatele na zveřejnění výsledků sportovní akce. Ročník
+          narození se nezveřejňuje; jen u neformálního oslovení se při shodě jmen v tabulce doplní
+          začátek příjmení a případně poslední dvojčíslí ročníku (např. „Honza No 99“).
         </li>
       </ul>
       <h2>Vaše práva</h2>
@@ -335,8 +337,8 @@ export function PrivacyPage() {
           vás vedeme.
         </li>
         <li>
-          <strong>Výmaz</strong> — údaje anonymizujeme; časy zůstanou bez jména, aby se nezměnilo
-          pořadí ostatních.
+          <strong>Výmaz</strong> — údaje (i přezdívku) anonymizujeme; časy zůstanou bez jména, aby
+          se nezměnilo pořadí ostatních.
         </li>
         <li>Stížnost u Úřadu pro ochranu osobních údajů (uoou.gov.cz).</li>
       </ul>

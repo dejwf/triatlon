@@ -92,6 +92,8 @@ export function registrationToParticipant(
     status: 'checked_in',
     registrationSource: 'on_site',
     publicName: r.publicName ?? true,
+    nickname: r.nickname ?? null,
+    formal: r.formal ?? true,
     anonymized: false,
   };
 }

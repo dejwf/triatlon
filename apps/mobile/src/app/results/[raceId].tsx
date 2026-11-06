@@ -136,7 +136,7 @@ export default function Results() {
             </Text>
             <Text style={[s.text, { width: 40, textAlign: 'right', color: C.muted }]}>{r.bib}</Text>
             <Text style={[s.text, { flex: 1 }]} numberOfLines={1}>
-              {r.lastName} {r.firstName}
+              {r.displayName}
             </Text>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={[s.text, { fontWeight: '700', fontVariant: ['tabular-nums'] }]}>

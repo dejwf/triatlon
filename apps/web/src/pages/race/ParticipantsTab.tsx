@@ -106,6 +106,12 @@ export function ParticipantsTab() {
                 </td>
                 <td className={p.anonymized ? 'muted' : undefined}>
                   {p.lastName} {p.firstName}
+                  {p.nickname && <span className="muted"> „{p.nickname}“</span>}
+                  {!p.formal && (
+                    <span className="flag" title="Ve výsledcích neformálně (přezdívka / jméno)">
+                      neformálně
+                    </span>
+                  )}
                   {!p.publicName && !p.anonymized && (
                     <span className="flag" title="Jméno se na veřejné tabuli nezobrazuje">
                       🔒
@@ -157,6 +163,8 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
         locality: d.get('locality') as Locality,
         bib: bib ? Number(bib) : undefined,
         publicName: d.get('publicName') === 'on',
+        nickname: String(d.get('nickname') ?? '').trim() || null,
+        formal: d.get('informal') !== 'on',
       },
       // Formulář zůstává otevřený pro zadání dalšího závodníka.
       { onSuccess: () => form.reset() },
@@ -168,6 +176,7 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
       <div className="row">
         <input name="firstName" required placeholder="Jméno" />
         <input name="lastName" required placeholder="Příjmení" />
+        <input name="nickname" placeholder="Přezdívka" maxLength={40} />
         <input
           name="birthYear"
           type="number"
@@ -194,6 +203,9 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
         <input name="bib" type="number" min={1} placeholder="Číslo (auto)" className="short" />
         <label title="Závodník může zveřejnění jména na veřejné výsledkové tabuli odmítnout">
           <input name="publicName" type="checkbox" defaultChecked /> jméno veřejně
+        </label>
+        <label title="Ve výsledcích přezdívka (nebo jméno), při shodě s doplněním příjmení a ročníku">
+          <input name="informal" type="checkbox" /> neformálně
         </label>
       </div>
       <ErrorBox error={add.error} />
@@ -282,6 +294,12 @@ function EditParticipant({
           value={form.lastName}
           onChange={(e) => setForm({ ...form, lastName: e.target.value })}
         />
+        <input
+          value={form.nickname ?? ''}
+          placeholder="Přezdívka"
+          maxLength={40}
+          onChange={(e) => setForm({ ...form, nickname: e.target.value })}
+        />
       </td>
       <td>
         <input
@@ -332,6 +350,14 @@ function EditParticipant({
           />{' '}
           jméno veřejně
         </label>
+        <label title="Ve výsledcích přezdívka (nebo jméno), při shodě s doplněním příjmení a ročníku">
+          <input
+            type="checkbox"
+            checked={!form.formal}
+            onChange={(e) => setForm({ ...form, formal: !e.target.checked })}
+          />{' '}
+          neformálně
+        </label>
       </td>
       <td colSpan={2} className="actions">
         <button
@@ -347,6 +373,8 @@ function EditParticipant({
               locality: form.locality,
               status: form.status,
               publicName: form.publicName,
+              nickname: form.nickname?.trim() || null,
+              formal: form.formal,
             })
           }
         >

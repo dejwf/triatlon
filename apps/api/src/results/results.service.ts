@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   computeCategoryResults,
+  displayNames,
   projectEvents,
   type CategoryResultsDto,
   type RaceResultsDto,
@@ -40,7 +41,7 @@ export class ResultsService {
 
   /** Výpočet výsledků bez kontroly přístupu (volající ji musí udělat sám — i veřejná tabule). */
   async compute(raceId: string, categoryId?: string): Promise<RaceResultsDto> {
-    const [race, events, overrides] = await Promise.all([
+    const [race, events, overrides, people] = await Promise.all([
       this.prisma.race.findUniqueOrThrow({
         where: { id: raceId },
         include: {
@@ -59,6 +60,20 @@ export class ResultsService {
         where: { category: { raceId }, supersededAt: null, ...(categoryId ? { categoryId } : {}) },
         orderBy: { createdAt: 'asc' },
       }),
+      // Názvy se rozlišují v celé společné tabulce (věková skupina + pohlaví, domácí i hosté),
+      // proto vždy všichni závodníci závodu — i když se počítá jen jedna kategorie.
+      this.prisma.participant.findMany({
+        where: { raceId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          nickname: true,
+          formal: true,
+          birthYear: true,
+          category: { select: { ageGroupLabel: true, gender: true } },
+        },
+      }),
     ]);
     if (categoryId && race.categories.length === 0)
       throw new NotFoundException('Kategorie nenalezena.');
@@ -71,6 +86,12 @@ export class ResultsService {
       })),
     );
     const checkpointById = new Map(race.checkpoints.map((c) => [c.id, c]));
+    const tables = new Map<string, typeof people>();
+    for (const p of people) {
+      const key = `${p.category.ageGroupLabel}|${p.category.gender}`;
+      tables.set(key, [...(tables.get(key) ?? []), p]);
+    }
+    const names = new Map([...tables.values()].flatMap((t) => [...displayNames(t)]));
 
     const categories: CategoryResultsDto[] = race.categories
       .map((c) => {
@@ -90,7 +111,7 @@ export class ResultsService {
           ...computeCategoryResults({
             checkpoints: c.checkpoints.map((cc) => checkpointById.get(cc.checkpointId)!),
             disciplines: race.disciplines,
-            participants: c.participants,
+            participants: c.participants.map((p) => ({ ...p, displayName: names.get(p.id) })),
             projection,
             overrides: own,
             closed: c.closedAt !== null,

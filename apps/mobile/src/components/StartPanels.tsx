@@ -112,6 +112,7 @@ export function StartPanel({
                       >
                         <Text style={s.text}>
                           {e.participant.bib} · {e.participant.lastName} {e.participant.firstName}
+                          {e.participant.nickname ? ` „${e.participant.nickname}“` : ''}
                         </Text>
                         <ConfirmButton
                           title="Start"
@@ -175,7 +176,7 @@ export function CheckInPanel({
       const q = query.toLocaleLowerCase('cs');
       return (
         String(p.bib).startsWith(q) ||
-        `${p.lastName} ${p.firstName}`.toLocaleLowerCase('cs').includes(q)
+        `${p.lastName} ${p.firstName} ${p.nickname ?? ''}`.toLocaleLowerCase('cs').includes(q)
       );
     })
     .sort(
@@ -217,6 +218,7 @@ export function CheckInPanel({
               <View style={[s.row, { justifyContent: 'space-between' }]}>
                 <Text style={[s.text, { fontWeight: '700' }]}>
                   {p.unconfirmed ? `${p.bib}*` : p.bib} · {p.lastName} {p.firstName}
+                  {p.nickname ? ` „${p.nickname}“` : ''}
                 </Text>
                 <Text style={s.muted}>
                   {categoryShortLabel(category)}
@@ -254,6 +256,8 @@ export function RegisterPanel({
   const race = snapshot.race;
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [formal, setFormal] = useState(true);
   const [birthYear, setBirthYear] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [locality, setLocality] = useState<Locality>('local');
@@ -280,6 +284,8 @@ export function RegisterPanel({
       id: uuid(),
       firstName,
       lastName,
+      nickname,
+      formal,
       birthYear: year,
       gender,
       locality,
@@ -307,6 +313,8 @@ export function RegisterPanel({
     );
     setFirstName('');
     setLastName('');
+    setNickname('');
+    setFormal(true);
     setBirthYear('');
     setGender(null);
     setBib('');
@@ -327,6 +335,22 @@ export function RegisterPanel({
           value={lastName}
           onChangeText={setLastName}
           autoCapitalize="words"
+        />
+        <Field
+          label="Přezdívka (nepovinná)"
+          value={nickname}
+          onChangeText={setNickname}
+          autoCapitalize="words"
+          maxLength={40}
+        />
+        <Text style={s.label}>Oslovení ve výsledcích</Text>
+        <Segmented
+          value={formal ? 'formal' : 'informal'}
+          options={[
+            { value: 'formal', label: 'formálně' },
+            { value: 'informal', label: 'neformálně' },
+          ]}
+          onChange={(v) => setFormal(v === 'formal')}
         />
         <Field
           label="Ročník narození"

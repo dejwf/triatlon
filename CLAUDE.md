@@ -64,6 +64,10 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 - Stav: registrován / přítomen (checked-in) / nepřítomen (absent) / diskvalifikován (volitelně do budoucna).
 - Absent závodník se vynechává ze zadávání časů a z výsledků.
 - Rok narození (případně celé datum) — pro zařazení do kategorie.
+- Volitelná **přezdívka** (při anonymizaci se maže) a **oslovení** ve výsledcích (`packages/shared/src/names.ts`):
+  - formální (výchozí): `Jan "Honza" Novák`, bez přezdívky `Jan Novák`,
+  - neformální: přezdívka, jinak jméno (`Honza` / `Jan`); při shodě ve společné tabulce (věková skupina + pohlaví, domácí i hosté) se přidají 2 písmena příjmení (`Honza No`, „Ch“ = jedno písmeno), při další shodě dvojčíslí ročníku (`Honza No 99`). Rozlišují se jen ti, kdo se shodují.
+  - Nastavuje se při ručním zadání, importu (sloupce `přezdívka`, `oslovení` = formální/neformální) i registraci na místě. Zobrazovaný název platí ve všech výsledcích (veřejná tabule, administrace, appka); seznamy a check-in ukazují celé údaje.
 - Zdroj registrace: `manual` (ruční zadání adminem) / `import` (CSV/Excel) / `online` (veřejný formulář) / `on_site` (registrace na místě z mobilu).
 
 ### Checkpoint
@@ -161,7 +165,7 @@ Mobilnímu klientovi se v projektu říká **appka** (skloňováno podle vzoru �
 
 ## 7b. Veřejná tabule, GDPR, nasazení — implementační rozhodnutí (F4)
 
-- **Veřejná tabule** `/vysledky` (web, bez přihlášení) z `GET /api/public/races…` + živý kanál `…/stream` (EventSource). Viditelné jsou jen závody ve stavu _probíhá_ / _dokončen_. Ve výchozím pohledu jsou **domácí a hosté téže věkové skupiny a pohlaví v jedné tabulce** se společným pořadím (v závorce pořadí v kategorii) a sloupcem **D/H** hned za startovním číslem (čísla se mezi kategoriemi opakují); přepínačem „Domácí a hosté zvlášť“ se zobrazí jednotlivé kategorie s pořadím v kategorii. Zobrazuje pořadí, číslo, jméno, mezičasy od startu a celkový čas — **bez ročníku**, interních ID, poznámek a autorů záznamů. Výsledky se počítají jednou pro všechny diváky (cache zneplatněná při změně).
+- **Veřejná tabule** `/vysledky` (web, bez přihlášení) z `GET /api/public/races…` + živý kanál `…/stream` (EventSource). Viditelné jsou jen závody ve stavu _probíhá_ / _dokončen_. Ve výchozím pohledu jsou **domácí a hosté téže věkové skupiny a pohlaví v jedné tabulce** se společným pořadím (v závorce pořadí v kategorii) a sloupcem **D/H** hned za startovním číslem (čísla se mezi kategoriemi opakují); přepínačem „Domácí a hosté zvlášť“ se zobrazí jednotlivé kategorie s pořadím v kategorii. Zobrazuje pořadí, číslo, zobrazovaný název (oslovení, viz sekce 4 – Závodník), mezičasy od startu a celkový čas — **bez ročníku** (výjimka: dvojčíslí u neformálního oslovení při shodě jmen), interních ID, poznámek a autorů záznamů. Výsledky se počítají jednou pro všechny diváky (cache zneplatněná při změně).
 - **GDPR**: závodník může odmítnout zveřejnění jména (`publicName` → na tabuli jen číslo); admin umí **export údajů** (JSON) a **anonymizaci** (jméno nahrazeno, kopie údajů z auditu odstraněny, časy a pořadí zůstávají, aby se neměnily výsledky ostatních). Informace pro závodníky na `/ochrana-osobnich-udaju` (pořadatel se doplní při buildu). Online formulář a souhlasy řeší až online registrace (mimo MVP).
 - **Nasazení** (`deploy/`, `Dockerfile`): Docker Compose na jednom serveru — Postgres, API (migrace při startu), Caddy (web + proxy + automatické HTTPS), pravidelné zálohy `pg_dump`. Postup v [`deploy/README.md`](deploy/README.md).
 

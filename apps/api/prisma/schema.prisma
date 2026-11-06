@@ -204,6 +204,10 @@ model Participant {
   registrationSource RegistrationSource @default(manual)
   /// Zobrazit jméno na veřejné tabuli (GDPR — závodník může odmítnout).
   publicName         Boolean            @default(true)
+  /// Přezdívka („Honza“) — při anonymizaci se maže.
+  nickname           String?
+  /// Oslovení ve výsledcích: formální „Jan "Honza" Novák“, neformální „Honza“ (viz displayNames).
+  formal             Boolean            @default(true)
   /// Kdy byly osobní údaje anonymizovány (GDPR); null = ne.
   anonymizedAt       DateTime?
   createdAt          DateTime           @default(now())

@@ -131,7 +131,7 @@ export class PublicService implements OnModuleDestroy {
           return {
             bib: r.bib,
             locality: r.locality,
-            name: hiddenIds.has(r.participantId) ? null : `${r.lastName} ${r.firstName}`,
+            name: hiddenIds.has(r.participantId) ? null : r.displayName,
             state: r.state,
             rank: r.rank,
             tied: r.tied,

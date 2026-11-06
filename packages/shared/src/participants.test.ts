@@ -61,7 +61,23 @@ describe('parseImportRow', () => {
         gender: 'male',
         locality: 'local',
         bib: 12,
+        nickname: null,
       },
+    });
+  });
+
+  it('přezdívka a oslovení', () => {
+    const base = { jmeno: 'Jan', prijmeni: 'Novák', rocnik: 1990, pohlavi: 'M', lokalita: 'M' };
+    expect(parseImportRow({ ...base, Přezdívka: ' Honza ', Oslovení: 'Neformální' })).toMatchObject(
+      { ok: true, value: { nickname: 'Honza', formal: false } },
+    );
+    expect(parseImportRow({ ...base, osloveni: 'F' })).toMatchObject({
+      ok: true,
+      value: { nickname: null, formal: true },
+    });
+    expect(parseImportRow({ ...base, osloveni: 'tykat' })).toEqual({
+      ok: false,
+      errors: ['Nerozpoznané oslovení „tykat“ (použijte formální / neformální).'],
     });
   });
 

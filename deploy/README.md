@@ -75,5 +75,5 @@ docker compose -p triatlon-test --env-file .env.prod down -v   # úklid
 - Na stránce `/ochrana-osobnich-udaju` jsou informace pro závodníky. Pořadatele doplní `ORGANIZER_NAME` a `ORGANIZER_CONTACT` při buildu. **Text nechte zkontrolovat.**
 - Závodníkovi, který nechce zveřejnit jméno, admin v Závodnících odškrtne _jméno veřejně_. Na tabuli se pak ukáže jen číslo.
 - **Žádost o přístup k údajům** vyřídíte tlačítkem Závodníci → Upravit → _Export údajů_, které stáhne JSON.
-- **Žádost o výmaz** vyřídíte tlačítkem _Anonymizovat_. Jméno se nahradí a kopie údajů zmizí z auditu, ale časy a pořadí ostatních zůstanou.
+- **Žádost o výmaz** vyřídíte tlačítkem _Anonymizovat_. Jméno se nahradí, přezdívka se smaže a kopie údajů zmizí z auditu, ale časy a pořadí ostatních zůstanou.
 - Data jsou v EU, tedy na serveru, v zálohách i u SMTP poskytovatele.

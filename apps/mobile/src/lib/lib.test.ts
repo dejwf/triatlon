@@ -61,6 +61,8 @@ function participant(
     status: status as ParticipantDto['status'],
     registrationSource: 'manual',
     publicName: true,
+    nickname: null,
+    formal: true,
     anonymized: false,
   };
 }
@@ -214,6 +216,7 @@ describe('grid checkpointu', () => {
       id: uuid(),
       firstName: 'Nový',
       lastName: 'Test',
+      nickname: null,
       birthYear: 1990,
       gender: 'male',
       locality: 'local',

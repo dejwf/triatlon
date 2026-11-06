@@ -157,7 +157,7 @@ function ResultsTable({
               </td>
               <td className="num">{r.bib}</td>
               <td>
-                {r.lastName} {r.firstName}
+                <span title={`${r.lastName} ${r.firstName}`}>{r.displayName}</span>
                 {r.notes.length > 0 && (
                   <span className="flag" title={r.notes.map((n) => n.text).join('\n')}>
                     💬
@@ -263,7 +263,7 @@ function CloseCategory({
     <div className="card row">
       <span className="muted">
         {onCourse.length
-          ? `Na trati: ${onCourse.map((r) => `${r.bib} ${r.lastName}`).join(', ')} — po uzavření nedokončili (DNF).`
+          ? `Na trati: ${onCourse.map((r) => `${r.bib} ${r.displayName}`).join(', ')} — po uzavření nedokončili (DNF).`
           : 'Na trati už nikdo není.'}
       </span>
       <button
@@ -297,7 +297,7 @@ function Ties({ race, category }: { race: RaceDetailDto; category: CategoryResul
 
   const name = (id: string) => {
     const r = category.rows.find((x) => x.participantId === id);
-    return r ? `${r.bib} ${r.lastName} ${r.firstName}` : '?';
+    return r ? `${r.bib} ${r.displayName}` : '?';
   };
 
   return (
@@ -347,7 +347,7 @@ function TieGroup({
     },
   });
   const byId = new Map(rows.map((r) => [r.participantId, r]));
-  const label = (r: ResultRow) => `${r.bib} ${r.lastName} ${r.firstName}`;
+  const label = (r: ResultRow) => `${r.bib} ${r.displayName}`;
 
   return (
     <div className="stack">

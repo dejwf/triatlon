@@ -67,7 +67,20 @@ const COLUMNS = {
   gender: ['pohlavi', 'gender', 'sex'],
   locality: ['lokalita', 'mistni', 'locality'],
   bib: ['cislo', 'startovnicislo', 'startcislo', 'bib'],
+  nickname: ['prezdivka', 'nick', 'nickname'],
+  formal: ['osloveni', 'formalni'],
 } as const;
+
+const FORMAL_VALUES: Record<string, boolean> = {
+  formalni: true,
+  f: true,
+  formal: true,
+  ano: true,
+  neformalni: false,
+  n: false,
+  informal: false,
+  ne: false,
+};
 
 /** Názvy sloupců pro šablonu importu. */
 export const IMPORT_TEMPLATE_HEADER = [
@@ -146,6 +159,13 @@ export function parseImportRow(
   const rawBib = pick(raw, COLUMNS.bib);
   const bib = rawBib === undefined ? undefined : Number(String(rawBib).trim());
 
+  const rawFormal = pick(raw, COLUMNS.formal);
+  const formal = rawFormal === undefined ? undefined : FORMAL_VALUES[norm(rawFormal)];
+  if (rawFormal !== undefined && formal === undefined) {
+    errors.push(`Nerozpoznané oslovení „${String(rawFormal)}“ (použijte formální / neformální).`);
+  }
+  const rawNick = pick(raw, COLUMNS.nickname);
+
   const parsed = ParticipantInput.safeParse({
     firstName: String(pick(raw, COLUMNS.firstName) ?? '').trim(),
     lastName: String(pick(raw, COLUMNS.lastName) ?? '').trim(),
@@ -153,6 +173,8 @@ export function parseImportRow(
     gender,
     locality,
     bib,
+    nickname: rawNick === undefined ? undefined : String(rawNick).trim(),
+    formal,
   });
 
   if (!parsed.success) {
@@ -161,6 +183,7 @@ export function parseImportRow(
       lastName: 'Příjmení',
       birthYear: 'Ročník',
       bib: 'Startovní číslo',
+      nickname: 'Přezdívka',
     };
     for (const issue of parsed.error.issues) {
       const field = String(issue.path[0]);

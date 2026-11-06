@@ -18,7 +18,7 @@ export interface PublicResultRowDto {
   bib: number;
   /** Domácí / host — ve společné tabulce rozlišuje stejná startovní čísla. */
   locality: Locality;
-  /** „Příjmení Jméno“, nebo null, když závodník zveřejnění jména odmítl. */
+  /** Zobrazovaný název (`displayNames`), nebo null, když závodník zveřejnění jména odmítl. */
   name: string | null;
   state: ResultState;
   rank: number | null;
@@ -73,6 +73,8 @@ export interface ParticipantExportDto {
     status: string;
     registrationSource: string;
     publicName: boolean;
+    nickname: string | null;
+    formal: boolean;
     createdAt: string;
   };
   times: { checkpoint: string; type: string; ts: string; note: string | null }[];

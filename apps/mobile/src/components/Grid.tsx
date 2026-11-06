@@ -251,6 +251,7 @@ function EntryMenu({
         >
           <Text style={s.h2}>
             {p.bib} · {p.lastName} {p.firstName}
+            {p.nickname ? ` „${p.nickname}“` : ''}
           </Text>
           <Muted>
             {entry.category.name}

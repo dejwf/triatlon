@@ -76,6 +76,18 @@ export const ParticipantInput = z.object({
   bib: z.number().int().min(1).max(99_999).optional(),
   /** Zobrazit jméno na veřejné výsledkové tabuli (GDPR — závodník může odmítnout). */
   publicName: z.boolean().optional(),
+  /** Přezdívka („Honza“); prázdná = žádná. */
+  nickname: z
+    .string()
+    .trim()
+    .max(40, 'Přezdívka může mít nejvýš 40 znaků.')
+    .nullish()
+    .transform((v) => v || null),
+  /**
+   * Oslovení ve výsledcích: formální `Jan "Honza" Novák` (výchozí), neformální `Honza`
+   * (při shodě `Honza No`, `Honza No 99`) — viz `displayNames`.
+   */
+  formal: z.boolean().optional(),
 });
 export type ParticipantInput = z.infer<typeof ParticipantInput>;
 
@@ -207,6 +219,8 @@ export interface ParticipantDto {
   status: ParticipantStatus;
   registrationSource: RegistrationSource;
   publicName: boolean;
+  nickname: string | null;
+  formal: boolean;
   /** Osobní údaje byly anonymizovány (GDPR). */
   anonymized: boolean;
 }

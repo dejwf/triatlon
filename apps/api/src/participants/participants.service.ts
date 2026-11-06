@@ -68,6 +68,8 @@ export class ParticipantsService {
           locality: input.locality,
           registrationSource: source,
           publicName: input.publicName ?? true,
+          nickname: input.nickname ?? null,
+          formal: input.formal ?? true,
         },
       });
       await this.audit.record(
@@ -120,6 +122,8 @@ export class ParticipantsService {
           bib,
           status: input.status,
           publicName: input.publicName,
+          nickname: input.nickname,
+          formal: input.formal,
         },
       });
       await this.audit.record(
@@ -214,6 +218,8 @@ export class ParticipantsService {
           locality: input.locality,
           status: 'checked_in',
           registrationSource: 'on_site',
+          nickname: input.nickname ?? null,
+          formal: input.formal ?? true,
         },
       });
       await this.audit.record(
@@ -333,6 +339,8 @@ export class ParticipantsService {
           birthYear: p!.birthYear,
           gender: p!.gender,
           locality: p!.locality,
+          nickname: p!.nickname ?? null,
+          formal: p!.formal ?? true,
           registrationSource: 'import' as const,
         })),
       });
@@ -392,6 +400,8 @@ export class ParticipantsService {
         status: p.status,
         registrationSource: p.registrationSource,
         publicName: p.publicName,
+        nickname: p.nickname,
+        formal: p.formal,
         createdAt: p.createdAt.toISOString(),
       },
       times: p.timeEvents.map((e) => ({
@@ -422,6 +432,8 @@ export class ParticipantsService {
         data: {
           firstName: 'Anonymizovaný',
           lastName: 'závodník',
+          nickname: null,
+          formal: true,
           publicName: false,
           anonymizedAt: new Date(),
         },
@@ -506,6 +518,8 @@ function toDto(p: Participant): ParticipantDto {
     status: p.status,
     registrationSource: p.registrationSource,
     publicName: p.publicName,
+    nickname: p.nickname,
+    formal: p.formal,
     anonymized: p.anonymizedAt !== null,
   };
 }

@@ -47,7 +47,7 @@ export function ParticipantPanel({
     <section className="card stack">
       <div className="page-head">
         <h2>
-          {row.bib} · {row.lastName} {row.firstName}
+          {row.bib} · {row.displayName}
         </h2>
         <span className="muted">
           {category.name} · pořadí {row.rank ?? '—'} · celkem {formatDuration(row.totalMs, true)}

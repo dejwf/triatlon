@@ -8,3 +8,4 @@ export * from './results.js';
 export * from './events.js';
 export * from './mobile.js';
 export * from './public.js';
+export * from './names.js';

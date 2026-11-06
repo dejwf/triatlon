@@ -164,7 +164,7 @@ export function ImportTab() {
                   <td className="num">{r.row + 1}</td>
                   <td>
                     {r.participant
-                      ? `${r.participant.lastName} ${r.participant.firstName}`
+                      ? `${r.participant.lastName} ${r.participant.firstName}${r.participant.nickname ? ` „${r.participant.nickname}“` : ''}${r.participant.formal === false ? ' (neformálně)' : ''}`
                       : Object.values(rows?.[r.row - 1] ?? {})
                           .slice(0, 2)
                           .join(' ')}

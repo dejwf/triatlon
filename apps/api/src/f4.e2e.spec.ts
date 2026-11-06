@@ -202,9 +202,9 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
     assert.deepEqual(
       cat.rows.map((r) => [r.bib, r.name, r.rank]),
       [
-        [1, 'Testovací Hotový', 1],
+        [1, 'Hotový Testovací', 1],
         [3, null, 2],
-        [2, 'Testovací Natrati', 3],
+        [2, 'Natrati Testovací', 3],
       ],
     );
     const json = JSON.stringify(board);
@@ -263,6 +263,59 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
     // V kategorii domácích zůstává vlastní pořadí.
     const local = board.categories.find((c) => c.id === categoryId)!;
     assert.equal(local.rows[0]!.rank, 1);
+  });
+
+  it('přezdívka a oslovení: formální Jméno "Nick" Příjmení, neformální rozlišení při shodě', async () => {
+    const add = async (body: Record<string, unknown>) =>
+      (await t.request('POST', `/races/${race.id}/participants`, body, admin)).body;
+    const formal = await add({ ...person('Jan', 20), lastName: 'Novák', nickname: 'Honza' });
+    const local = await add({
+      ...person('Jan', 21),
+      lastName: 'Nosek',
+      nickname: 'Honza',
+      formal: false,
+    });
+    const guest = await add({
+      ...person('Jan', 21),
+      lastName: 'Nedoma',
+      nickname: 'Honza',
+      formal: false,
+      locality: 'guest',
+    });
+    assert.equal(formal.formal, true);
+    assert.equal(local.nickname, 'Honza');
+    await t.request(
+      'POST',
+      `/races/${race.id}/time-events`,
+      {
+        events: [formal, local, guest].map((p) => record(p.id, start, '2026-07-17T08:00:00.000Z')),
+      },
+      finisher.token,
+    );
+    const board: PublicRaceResultsDto = (await t.request('GET', `/public/races/${race.id}/results`))
+      .body;
+    const names = new Map(board.groups[0]!.rows.map((r) => [`${r.locality}-${r.bib}`, r.name]));
+    assert.equal(names.get('local-20'), 'Jan "Honza" Novák');
+    // Domácí a host se shodují ve společné tabulce → 2 písmena příjmení.
+    assert.equal(names.get('local-21'), 'Honza No');
+    assert.equal(names.get('guest-21'), 'Honza Ne');
+    const results: RaceResultsDto = (
+      await t.request('GET', `/races/${race.id}/results?categoryId=${categoryId}`, undefined, admin)
+    ).body;
+    assert.equal(
+      results.categories[0]!.rows.find((r) => r.participantId === local.id)!.displayName,
+      'Honza No',
+      'i výsledky jedné kategorie rozlišují podle společné tabulky',
+    );
+
+    await t.request(
+      'POST',
+      `/races/${race.id}/participants/${local.id}/anonymize`,
+      { reason: 'Žádost závodníka' },
+      admin,
+    );
+    const stored = await t.prisma.participant.findUniqueOrThrow({ where: { id: local.id } });
+    assert.equal(stored.nickname, null);
   });
 
   it('GDPR: export údajů a anonymizace (časy a pořadí zůstanou)', async () => {

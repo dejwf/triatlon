@@ -227,6 +227,44 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
     assert.equal(row.state, 'finished');
   });
 
+  it('veřejná tabule: domácí a hosté v jedné tabulce se společným pořadím a D/H', async () => {
+    const res = await t.request(
+      'POST',
+      `/races/${race.id}/participants`,
+      { ...person('Host', 1), locality: 'guest' },
+      admin,
+    );
+    const guest = res.body;
+    await t.request(
+      'POST',
+      `/races/${race.id}/time-events`,
+      {
+        events: [
+          record(guest.id, start, '2026-07-17T08:10:00.000Z'),
+          record(guest.id, finish, '2026-07-17T08:45:00.000Z'), // 35 min = nejrychlejší
+        ],
+      },
+      finisher.token,
+    );
+    const board: PublicRaceResultsDto = (await t.request('GET', `/public/races/${race.id}/results`))
+      .body;
+    assert.equal(board.categories.length, 2, 'kategorie zvlášť zůstávají k dispozici');
+    assert.equal(board.groups.length, 1);
+    const group = board.groups[0]!;
+    assert.equal(group.name, '31–40 muži');
+    assert.deepEqual(new Set(group.categoryIds), new Set([categoryId, guest.categoryId]));
+    assert.deepEqual(
+      group.rows.slice(0, 2).map((r) => [r.bib, r.locality, r.rank]),
+      [
+        [1, 'guest', 1],
+        [1, 'local', 2],
+      ],
+    );
+    // V kategorii domácích zůstává vlastní pořadí.
+    const local = board.categories.find((c) => c.id === categoryId)!;
+    assert.equal(local.rows[0]!.rank, 1);
+  });
+
   it('GDPR: export údajů a anonymizace (časy a pořadí zůstanou)', async () => {
     const id = ids['Hotový']!;
     const exp = await t.request(
@@ -264,7 +302,7 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
 
     const board: PublicRaceResultsDto = (await t.request('GET', `/public/races/${race.id}/results`))
       .body;
-    const row = board.categories[0]!.rows.find((r) => r.bib === 1)!;
+    const row = board.categories.find((c) => c.id === categoryId)!.rows.find((r) => r.bib === 1)!;
     assert.equal(row.name, null);
     assert.equal(row.rank, 1);
   });

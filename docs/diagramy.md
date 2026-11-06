@@ -479,13 +479,13 @@ sequenceDiagram
   alt ne
     Cache->>API: přepočítat z logu (jednou pro všechny diváky)
   end
-  API-->>W: pořadí, číslo, jméno*, mezičasy (bez ročníku a interních ID)
+  API-->>W: skupiny (domácí + hosté, společné pořadí) i kategorie zvlášť:<br/>pořadí, číslo, D/H, jméno*, mezičasy (bez ročníku a interních ID)
   W->>API: EventSource /public/races/:id/stream
   loop každý zápis na checkpointu
     API-->>W: „results“ (kategorie) → cache zneplatněna
     W->>API: GET …/results
   end
-  Note over W: * kdo odmítl zveřejnění, je jen „závodník č. X“
+  Note over W: výchozí pohled = skupina se sloupcem D/H u čísla<br/>* kdo odmítl zveřejnění, je jen „závodník č. X“
 ```
 
 ## 18. Nasazení

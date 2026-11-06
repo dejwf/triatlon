@@ -3,6 +3,7 @@ import {
   computeCategoryResults,
   formatDuration,
   projectEvents,
+  rankCombined,
   type ResultCheckpoint,
   type ResultEvent,
   type ResultParticipant,
@@ -239,6 +240,48 @@ describe('výsledky kategorie', () => {
       overrides: [{ id: 'o1', participantIds: ['b', 'a'] }],
     });
     expect(r.rows.every((x) => x.rank === 1 && x.tied)).toBe(true);
+  });
+});
+
+describe('společné pořadí více kategorií', () => {
+  it('domácí a hosté v jednom pořadí; stejná čísla nevadí; každý od svého startu', () => {
+    // Hosté startují o 10 min později — čas se počítá od vlastního startu.
+    const local = results(
+      [
+        ...fullRace('l1', 300, 1800, 2400),
+        ev('record', 'l2', 'start', 0),
+        ev('record', 'l2', 'swimEnd', 320),
+      ],
+      [p('l1', 1), p('l2', 2)],
+    );
+    const guest = results(
+      [
+        ev('record', 'g1', 'start', 600),
+        ev('record', 'g1', 'swimEnd', 900),
+        ev('record', 'g1', 'bikeEnd', 2300),
+        ev('record', 'g1', 'finish', 2900),
+      ],
+      [p('g1', 1), p('g2', 3, 'registered')],
+    );
+    const merged = rankCombined([...local.rows, ...guest.rows], cps);
+    expect(merged.map((r) => [r.participantId, r.rank])).toEqual([
+      ['g1', 1], // 2300 s
+      ['l1', 2], // 2400 s
+      ['l2', 3], // na trati
+      ['g2', null],
+    ]);
+    // Původní řádky kategorií se nemění.
+    expect(local.rows[0]!.rank).toBe(1);
+  });
+
+  it('remíza napříč kategoriemi', () => {
+    const a = results(fullRace('a', 300, 1800, 2400), [p('a', 1)]);
+    const b = results(fullRace('b', 300, 1800, 2400), [p('b', 1)]);
+    const merged = rankCombined([...a.rows, ...b.rows], cps);
+    expect(merged.map((r) => [r.rank, r.tied])).toEqual([
+      [1, true],
+      [1, true],
+    ]);
   });
 });
 

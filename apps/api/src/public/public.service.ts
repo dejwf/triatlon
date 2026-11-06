@@ -1,8 +1,12 @@
 import { Injectable, NotFoundException, type OnModuleDestroy } from '@nestjs/common';
-import type {
-  PublicCategoryDto,
-  PublicRaceResultsDto,
-  PublicRaceSummaryDto,
+import {
+  GENDER_LABEL,
+  rankCombined,
+  type CategoryResultsDto,
+  type PublicCategoryDto,
+  type PublicRaceResultsDto,
+  type PublicRaceSummaryDto,
+  type ResultRow,
 } from '@triatlon/shared';
 import type { Subscription } from 'rxjs';
 import { PrismaService } from '../prisma.service';
@@ -75,38 +79,88 @@ export class PublicService implements OnModuleDestroy {
       },
     });
     if (!race) throw new NotFoundException('Závod nenalezen.');
-    const [results, hidden] = await Promise.all([
+    const [results, hidden, meta] = await Promise.all([
       this.results.compute(raceId),
       this.prisma.participant.findMany({
         where: { raceId, publicName: false },
         select: { id: true },
       }),
+      this.prisma.category.findMany({
+        where: { raceId },
+        select: { id: true, ageGroupLabel: true, gender: true, locality: true },
+      }),
     ]);
     const hiddenIds = new Set(hidden.map((p) => p.id));
+    const metaById = new Map(meta.map((c) => [c.id, c]));
+    const seqOf = new Map(race.checkpoints.map((c) => [c.id, c.seq]));
+    const shown = results.categories.filter((c) => c.counts.registered > 0);
 
-    const categories: PublicCategoryDto[] = results.categories
-      .filter((c) => c.counts.registered > 0)
-      .map((c) => ({
-        id: c.categoryId,
-        name: c.name,
-        startedAt: c.startedAt,
-        closedAt: c.closedAt,
-        counts: { started: c.counts.started, finished: c.counts.finished, dnf: c.counts.dnf },
-        checkpointIds: c.checkpointIds,
-        rows: c.rows.map((r) => {
+    type Row = ResultRow & { locality: 'local' | 'guest' };
+    const withLocality = (c: CategoryResultsDto): Row[] =>
+      c.rows.map((r) => ({ ...r, locality: metaById.get(c.categoryId)!.locality }));
+
+    const toDto = (
+      id: string,
+      name: string,
+      cats: CategoryResultsDto[],
+      rows: Row[],
+    ): PublicCategoryDto => {
+      const checkpointIds = [...new Set(cats.flatMap((c) => c.checkpointIds))].sort(
+        (a, b) => seqOf.get(a)! - seqOf.get(b)!,
+      );
+      const starts = cats.map((c) => c.startedAt).filter((t): t is string => !!t);
+      const closed = cats.map((c) => c.closedAt);
+      return {
+        id,
+        name,
+        categoryIds: cats.map((c) => c.categoryId),
+        startedAt: starts.sort()[0] ?? null,
+        closedAt: closed.every((t) => t) ? (closed as string[]).sort().at(-1)! : null,
+        counts: {
+          started: cats.reduce((n, c) => n + c.counts.started, 0),
+          finished: cats.reduce((n, c) => n + c.counts.finished, 0),
+          dnf: cats.reduce((n, c) => n + c.counts.dnf, 0),
+        },
+        checkpointIds,
+        rows: rows.map((r) => {
           const splits = new Map(r.splits.map((s) => [s.checkpointId, s.elapsedMs]));
           return {
             bib: r.bib,
+            locality: r.locality,
             name: hiddenIds.has(r.participantId) ? null : `${r.lastName} ${r.firstName}`,
             state: r.state,
             rank: r.rank,
             tied: r.tied,
             totalMs: r.totalMs,
-            splitsMs: c.checkpointIds.map((id) => splits.get(id) ?? null),
+            splitsMs: checkpointIds.map((id) => splits.get(id) ?? null),
             disciplinesMs: r.disciplines.map((d) => d.ms),
           };
         }),
-      }));
+      };
+    };
+
+    const categories = shown.map((c) => toDto(c.categoryId, c.name, [c], withLocality(c)));
+
+    // Výchozí pohled: domácí + hosté téže věkové skupiny a pohlaví v jedné tabulce.
+    const grouped = new Map<string, CategoryResultsDto[]>();
+    for (const c of shown) {
+      const m = metaById.get(c.categoryId)!;
+      const key = `${m.ageGroupLabel}|${m.gender}`;
+      grouped.set(key, [...(grouped.get(key) ?? []), c]);
+    }
+    const groups = [...grouped].map(([key, cats]) => {
+      const m = metaById.get(cats[0]!.categoryId)!;
+      // Domácí před hosty (stejné pořadí jako ve sloupci D/H).
+      const order = (c: CategoryResultsDto) =>
+        metaById.get(c.categoryId)!.locality === 'local' ? 0 : 1;
+      cats.sort((a, b) => order(a) - order(b));
+      const rows = rankCombined(
+        cats.flatMap(withLocality),
+        race.checkpoints,
+        cats.flatMap((c) => c.overrides),
+      );
+      return toDto(key, `${m.ageGroupLabel} ${GENDER_LABEL[m.gender]}`, cats, rows);
+    });
 
     return {
       race: {
@@ -119,6 +173,7 @@ export class PublicService implements OnModuleDestroy {
       generatedAt: results.generatedAt,
       checkpoints: race.checkpoints.map((c) => ({ id: c.id, name: c.name })),
       disciplines: race.disciplines.map((d) => ({ id: d.id, name: d.name })),
+      groups,
       categories,
     };
   }

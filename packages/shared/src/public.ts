@@ -3,7 +3,7 @@
  * (CLAUDE.md, sekce 6): jméno (pokud ho závodník nezakázal), kategorie, startovní číslo, časy.
  * Žádné ročníky, interní ID záznamů, poznámky ani kdo co zapsal.
  */
-import type { RaceStatus } from './domain.js';
+import type { Locality, RaceStatus } from './domain.js';
 import type { ResultState } from './results.js';
 
 export interface PublicRaceSummaryDto {
@@ -16,6 +16,8 @@ export interface PublicRaceSummaryDto {
 
 export interface PublicResultRowDto {
   bib: number;
+  /** Domácí / host — ve společné tabulce rozlišuje stejná startovní čísla. */
+  locality: Locality;
   /** „Příjmení Jméno“, nebo null, když závodník zveřejnění jména odmítl. */
   name: string | null;
   state: ResultState;
@@ -30,8 +32,10 @@ export interface PublicResultRowDto {
 export interface PublicCategoryDto {
   id: string;
   name: string;
+  /** Kategorie, ze kterých tabulka vzniká (u skupiny domácí + hosté obě). */
+  categoryIds: string[];
   startedAt: string | null;
-  /** Výsledky jsou oficiální (kategorie uzavřená ředitelem závodu). */
+  /** Výsledky jsou oficiální (kategorie uzavřená ředitelem závodu; u skupiny všechny její). */
   closedAt: string | null;
   counts: { started: number; finished: number; dnf: number };
   checkpointIds: string[];
@@ -43,6 +47,9 @@ export interface PublicRaceResultsDto {
   generatedAt: string;
   checkpoints: { id: string; name: string }[];
   disciplines: { id: string; name: string }[];
+  /** Výchozí pohled: věková skupina + pohlaví, domácí a hosté v jedné tabulce se společným pořadím. */
+  groups: PublicCategoryDto[];
+  /** Jednotlivé kategorie (domácí a hosté zvlášť) s pořadím v kategorii. */
   categories: PublicCategoryDto[];
 }
 

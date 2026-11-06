@@ -121,8 +121,22 @@ export function PublicBoard() {
 
   if (results.error) return <ErrorBox error={results.error} />;
   if (!results.data) return <Loading />;
-  const { race, categories } = results.data;
-  const category = categories.find((c) => c.id === params.get('kategorie')) ?? categories[0];
+  const { race } = results.data;
+  // Výchozí pohled: domácí a hosté v jedné tabulce; „zvlášť“ = jednotlivé kategorie.
+  const split = params.get('zvlast') === '1';
+  const tables = split ? results.data.categories : results.data.groups;
+  const selected = params.get('kategorie');
+  const category = tables.find((c) => c.id === selected) ?? tables[0];
+  const toggleSplit = () => {
+    // Zachová výběr: skupina → její první kategorie, kategorie → skupina, do které patří.
+    const target = (split ? results.data.groups : results.data.categories).find((c) =>
+      split ? c.categoryIds.includes(category?.id ?? '') : category?.categoryIds.includes(c.id),
+    );
+    setParams(
+      { ...(target ? { kategorie: target.id } : {}), ...(split ? {} : { zvlast: '1' }) },
+      { replace: true },
+    );
+  };
 
   return (
     <div className="stack">
@@ -134,23 +148,31 @@ export function PublicBoard() {
           <span className={`badge ${live ? 'live' : ''}`}>{live ? '● živě' : '○ připojuji…'}</span>
         )}
       </div>
-      {categories.length === 0 ? (
+      {tables.length === 0 ? (
         <p className="muted">Zatím nejsou žádné výsledky.</p>
       ) : (
         <>
           <nav className="chips" aria-label="Kategorie">
-            {categories.map((c) => (
+            {tables.map((c) => (
               <button
                 key={c.id}
                 className={c.id === category?.id ? 'chip active' : 'chip'}
-                onClick={() => setParams({ kategorie: c.id }, { replace: true })}
+                onClick={() =>
+                  setParams(
+                    { kategorie: c.id, ...(split ? { zvlast: '1' } : {}) },
+                    { replace: true },
+                  )
+                }
               >
                 {c.closedAt ? '✓ ' : ''}
                 {c.name}
               </button>
             ))}
           </nav>
-          {category && <CategoryBoard data={results.data} category={category} />}
+          <label className="small">
+            <input type="checkbox" checked={split} onChange={toggleSplit} /> Domácí a hosté zvlášť
+          </label>
+          {category && <CategoryBoard data={results.data} category={category} combined={!split} />}
         </>
       )}
       <p className="muted small">
@@ -164,9 +186,12 @@ export function PublicBoard() {
 function CategoryBoard({
   data,
   category,
+  combined,
 }: {
   data: PublicRaceResultsDto;
   category: PublicCategoryDto;
+  /** Domácí i hosté v jedné tabulce → sloupec D/H hned u čísla (čísla se opakují). */
+  combined: boolean;
 }) {
   const now = useNow();
   const names = new Map(data.checkpoints.map((c) => [c.id, c.name]));
@@ -196,6 +221,11 @@ function CategoryBoard({
           <tr>
             <th className="num">Poř.</th>
             <th className="num">Č.</th>
+            {combined && (
+              <th className="loc-col" title="D = domácí, H = host">
+                D/H
+              </th>
+            )}
             <th>Jméno</th>
             {columns.map((id) => (
               <th key={id} className="num split-col" title="Čas od startu">
@@ -210,7 +240,7 @@ function CategoryBoard({
             const splits = category.checkpointIds.map((id, i) => [id, r.splitsMs[i]] as const);
             return (
               <tr
-                key={r.bib}
+                key={`${r.locality}-${r.bib}`}
                 className={r.state === 'finished' || r.state === 'racing' ? undefined : 'dimmed'}
               >
                 <td className="num">
@@ -218,6 +248,11 @@ function CategoryBoard({
                   {r.tied ? '=' : ''}
                 </td>
                 <td className="num">{r.bib}</td>
+                {combined && (
+                  <td className="loc-col" title={r.locality === 'local' ? 'domácí' : 'host'}>
+                    {r.locality === 'local' ? 'D' : 'H'}
+                  </td>
+                )}
                 <td>
                   {r.name ?? <span className="muted">závodník č. {r.bib}</span>}
                   {r.state !== 'finished' && (

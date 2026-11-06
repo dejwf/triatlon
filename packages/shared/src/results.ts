@@ -322,16 +322,31 @@ export function computeCategoryResults(input: {
 }
 
 /**
+ * Společné pořadí řádků z více kategorií (veřejná tabule: domácí + hosté téže věkové skupiny
+ * a pohlaví v jedné tabulce). Stejná pravidla jako v kategorii; ruční rozhodnutí remízy platí,
+ * jen pokud pokrývá přesně tutéž skupinu. Vrací nové řádky seřazené podle pořadí.
+ */
+export function rankCombined<R extends ResultRow>(
+  rows: readonly R[],
+  checkpoints: readonly ResultCheckpoint[],
+  overrides: readonly RankingOverride[] = [],
+): R[] {
+  const copy = rows.map((r) => ({ ...r, rank: null, tied: false, rankOverridden: false }));
+  rank(copy, new Map(checkpoints.map((c) => [c.id, c.seq])), overrides);
+  return copy;
+}
+
+/**
  * Pořadí v kategorii (CLAUDE.md, sekce 7): dokončení podle celkového času; průběžně podle
  * posledního dosaženého checkpointu (dál = lépe) a času od startu na něm. Remíza (stejná
  * sekunda) = stejné pořadí, pokud ji admin nerozhodl (override musí pokrýt celou skupinu).
  */
-function rank(
-  rows: ResultRow[],
+function rank<R extends ResultRow>(
+  rows: R[],
   seqOf: Map<string, number>,
   overrides: readonly RankingOverride[],
 ): void {
-  const key = (r: ResultRow): number[] | null => {
+  const key = (r: R): number[] | null => {
     if (r.state === 'finished') return [0, rounded(r.totalMs!)];
     if (r.state === 'racing') {
       const last = r.splits.at(-1)!;

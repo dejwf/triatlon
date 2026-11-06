@@ -1,4 +1,4 @@
-import { findAgeGroup } from './age.js';
+import { ageInRaceYear, electiveGroups, findAgeGroup } from './age.js';
 import { ParticipantInput } from './admin.js';
 import type { AgeGroup, Gender, Locality } from './domain.js';
 
@@ -12,18 +12,40 @@ export interface CategoryKey {
 
 /**
  * Zařadí závodníka do kategorie podle ročníku narození (věk = rok závodu − ročník), pohlaví
- * a lokality. Vrací kategorii, nebo českou chybovou hlášku.
+ * a lokality. Volitelnou skupinu (např. Super ženy) jen tehdy, když ji závodník zvolil
+ * (`electiveGroup` = popisek skupiny). Vrací kategorii, nebo českou chybovou hlášku.
  */
 export function resolveCategory<C extends CategoryKey>(
-  p: { birthYear: number; gender: Gender; locality: Locality },
+  p: { birthYear: number; gender: Gender; locality: Locality; electiveGroup?: string | null },
   raceYear: number,
   ageGroups: readonly AgeGroup[],
   categories: readonly C[],
 ): { category: C } | { error: string } {
-  const group = findAgeGroup(raceYear, p.birthYear, ageGroups);
+  const age = ageInRaceYear(raceYear, p.birthYear);
+  let group = findAgeGroup(raceYear, p.birthYear, ageGroups, p.gender);
+  if (p.electiveGroup) {
+    const wanted = norm(p.electiveGroup);
+    const chosen = ageGroups.find((g) => norm(g.label) === wanted);
+    const options = electiveGroups(raceYear, p.birthYear, p.gender, ageGroups);
+    if (!chosen || (!chosen.elective && chosen !== group)) {
+      const hint = options.length
+        ? ` Lze zvolit: ${[group, ...options]
+            .filter(Boolean)
+            .map((g) => g!.label)
+            .join(', ')}.`
+        : '';
+      return { error: `Kategorii „${p.electiveGroup}“ nelze zvolit.${hint}` };
+    }
+    if (chosen.elective && !options.includes(chosen)) {
+      return {
+        error: `Kategorie „${chosen.label}“ není určená pro ${p.gender === 'male' ? 'muže' : 'ženy'} ve věku ${age} let.`,
+      };
+    }
+    group = chosen;
+  }
   if (!group) {
     return {
-      error: `Ročník ${p.birthYear} (věk ${raceYear - p.birthYear}) nespadá do žádné věkové skupiny.`,
+      error: `Ročník ${p.birthYear} (věk ${age}) nespadá do žádné věkové skupiny (${GENDER_LABEL[p.gender]}).`,
     };
   }
   const category = categories.find(
@@ -69,6 +91,8 @@ const COLUMNS = {
   bib: ['cislo', 'startovnicislo', 'startcislo', 'bib'],
   nickname: ['prezdivka', 'nick', 'nickname'],
   formal: ['osloveni', 'formalni'],
+  /** Volitelná kategorie (např. „Super ženy“); prázdné = podle věku. */
+  electiveGroup: ['kategorie', 'volitelnakategorie', 'trat'],
 } as const;
 
 const FORMAL_VALUES: Record<string, boolean> = {
@@ -90,6 +114,9 @@ export const IMPORT_TEMPLATE_HEADER = [
   'pohlaví',
   'lokalita',
   'číslo',
+  'přezdívka',
+  'oslovení',
+  'kategorie',
 ];
 
 const GENDER_VALUES: Record<string, Gender> = {
@@ -175,6 +202,10 @@ export function parseImportRow(
     bib,
     nickname: rawNick === undefined ? undefined : String(rawNick).trim(),
     formal,
+    electiveGroup:
+      pick(raw, COLUMNS.electiveGroup) === undefined
+        ? undefined
+        : String(pick(raw, COLUMNS.electiveGroup)).trim(),
   });
 
   if (!parsed.success) {

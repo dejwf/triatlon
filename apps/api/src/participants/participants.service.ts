@@ -99,7 +99,12 @@ export class ParticipantsService {
         gender: input.gender ?? before.gender,
         locality: input.locality ?? before.locality,
       };
-      const category = await this.resolve(tx, raceId, merged);
+      // Zvolená volitelná kategorie (Super ženy) zůstává, dokud ji úprava výslovně nezmění.
+      const electiveGroup =
+        input.electiveGroup !== undefined
+          ? input.electiveGroup
+          : await this.currentElective(tx, raceId, before.categoryId);
+      const category = await this.resolve(tx, raceId, { ...merged, electiveGroup });
       const bib = input.bib ?? before.bib;
 
       if (
@@ -472,7 +477,7 @@ export class ParticipantsService {
   private async resolve(
     tx: Tx,
     raceId: string,
-    p: Pick<ParticipantInput, 'birthYear' | 'gender' | 'locality'>,
+    p: Pick<ParticipantInput, 'birthYear' | 'gender' | 'locality' | 'electiveGroup'>,
   ) {
     const race = await tx.race.findUnique({ where: { id: raceId } });
     if (!race) throw new NotFoundException('Závod nenalezen.');
@@ -480,6 +485,16 @@ export class ParticipantsService {
     const r = resolveCategory(p, race.year, AgeGroups.parse(race.ageGroups), categories);
     if ('error' in r) throw new UnprocessableEntityException(r.error);
     return r.category;
+  }
+
+  /** Popisek volitelné skupiny, je-li závodník v její kategorii; jinak null. */
+  private async currentElective(tx: Tx, raceId: string, categoryId: string) {
+    const [race, category] = await Promise.all([
+      tx.race.findUniqueOrThrow({ where: { id: raceId } }),
+      tx.category.findUniqueOrThrow({ where: { id: categoryId } }),
+    ]);
+    const group = AgeGroups.parse(race.ageGroups).find((g) => g.label === category.ageGroupLabel);
+    return group?.elective ? group.label : null;
   }
 
   private async nextBib(tx: Tx, categoryId: string): Promise<number> {

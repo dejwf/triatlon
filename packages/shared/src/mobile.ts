@@ -41,9 +41,16 @@ export function startCheckpointId(
   );
 }
 
-/** Krátké označení kategorie na tlačítko s číslem, např. „M 31–40“ nebo „Ž 9–10 H“ (hosté). */
+/**
+ * Krátké označení kategorie na tlačítko s číslem, např. „M 6–8“, „Ž 9–10 H“ (hosté), nebo
+ * u skupiny jen pro jedno pohlaví rovnou její popisek („Super ženy H“).
+ */
 export function categoryShortLabel(
-  c: Pick<CategoryDto, 'gender' | 'ageGroupLabel' | 'locality'>,
+  c: Pick<CategoryDto, 'gender' | 'ageGroupLabel' | 'locality' | 'groupName'>,
 ): string {
-  return `${c.gender === 'male' ? 'M' : 'Ž'} ${c.ageGroupLabel}${c.locality === 'guest' ? ' H' : ''}`;
+  const base =
+    c.groupName === c.ageGroupLabel
+      ? c.ageGroupLabel
+      : `${c.gender === 'male' ? 'M' : 'Ž'} ${c.ageGroupLabel}`;
+  return `${base}${c.locality === 'guest' ? ' H' : ''}`;
 }

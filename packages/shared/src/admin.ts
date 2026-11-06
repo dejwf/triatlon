@@ -88,6 +88,11 @@ export const ParticipantInput = z.object({
    * (při shodě `Honza No`, `Honza No 99`) — viz `displayNames`.
    */
   formal: z.boolean().optional(),
+  /**
+   * Zvolená volitelná kategorie (popisek věkové skupiny, např. „Super ženy“); bez hodnoty se
+   * kategorie určí podle věku. Při úpravě: undefined = ponechat, null = zpět podle věku.
+   */
+  electiveGroup: z.string().trim().max(100).nullish(),
 });
 export type ParticipantInput = z.infer<typeof ParticipantInput>;
 
@@ -176,6 +181,10 @@ export interface CategoryDto {
   id: string;
   name: string;
   ageGroupLabel: string;
+  /** Název skupiny bez lokality (např. „6–8 hoši“, „Super ženy“) = název společné tabulky. */
+  groupName: string;
+  /** Kategorie volitelné skupiny (např. Super ženy) — závodník se do ní zařazuje volbou. */
+  elective: boolean;
   birthYearFrom: number | null;
   birthYearTo: number;
   gender: Gender;

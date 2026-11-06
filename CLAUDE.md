@@ -52,7 +52,17 @@ Diváci (i tiskový mluvčí apod.) = role **Veřejnost** — samostatná "náhl
 ### Kategorie (Category)
 - Patří k závodu.
 - Definována kombinací:
-  - věkové skupiny — **definuje je admin** pro každý závod (nic hardcoded); hranice jsou včetně a skupiny se nesmí překrývat, např. 0–5, 6–8, 9–10, 11–15, 16–30, 31–40, 41–50, 51+; věk se počítá podle **ročníku narození**: `věk = rok závodu − rok narození` (datum narození v roce nerozhoduje). Kategorie si proto drží rozsah ročníků odvozený z věkové skupiny a roku závodu,
+  - věkové skupiny — **definuje je admin** pro každý závod; hranice jsou včetně a běžné skupiny se (pro každé pohlaví) nesmí překrývat; věk se počítá podle **ročníku narození**: `věk = rok závodu − rok narození` (datum narození v roce nerozhoduje). Kategorie si proto drží rozsah ročníků odvozený z věkové skupiny a roku závodu. Skupina může být **jen pro jedno pohlaví** (např. „Muži do 40“) a **volitelná** (např. „Super ženy“ — stejný věk jako „Ženy“, ale dlouhá trať; závodník se do ní zařadí jen volbou při registraci / importu / registraci na místě, jinak podle věku). Skupina nese i výchozí délky tratí pro své kategorie.
+  - **Výchozí skupiny = kategorie Vlkančického triatlonu** (vlkancice.cz/triatlon, `DEFAULT_AGE_GROUPS` v `packages/shared/src/age.ts`), při zakládání závodu předvyplněné a upravitelné:
+
+    | Skupina | Věk | Pohlaví | Plavání / kolo / běh (m) |
+    |---|---|---|---|
+    | 0–5, 6–8, 9–10, 11–12, 13–14, 15–16 | děti | dívky a hoši zvlášť | 10/200/50 … 100/2500/1200 |
+    | Ženy | 17+ | ženy | 200 / 6000 / 2000 |
+    | Super ženy (volitelná) | 17+ | ženy | 400 / 12 000 / 4000 |
+    | Muži do 40 | 17–40 | muži | 400 / 12 000 / 4000 |
+    | Muži nad 40 | 41+ | muži | 200 / 6000 / 2000 |
+
   - pohlaví (muži / ženy),
   - lokality (local / guest).
 - Stav: **otevřená / uzavřená**. Uzavírá ředitel závodu (nebo admin), až kategorie doběhne: výsledky jsou **oficiální**, kdo má start, ale ne cíl, je **DNF** (nedokončil), organizátoři už do kategorie nezapisují (časy, check-in, registrace na místě), admin může dál korigovat s důvodem. Uzavřít lze jen odstartovanou kategorii; znovuotevření vyžaduje důvod; obojí je v auditu. Uzavřením poslední kategorie přejde závod do stavu _dokončen_, znovuotevřením zpět do _probíhá_.

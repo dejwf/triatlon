@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { RaceCreateInput, RaceDetailDto } from '@triatlon/shared';
+import { DEFAULT_AGE_GROUPS, type RaceCreateInput, type RaceDetailDto } from '@triatlon/shared';
 import { Link, useNavigate } from 'react-router';
 import { http } from '../api';
-import { AgeGroupsEditor, DEFAULT_AGE_GROUPS } from '../AgeGroupsEditor';
+import { AgeGroupsEditor } from '../AgeGroupsEditor';
 import { keys, useIsAdmin, useRaces } from '../hooks';
 import { formatDate, RACE_STATUS_LABEL } from '../labels';
 import { ErrorBox, Field, Loading } from '../ui';
@@ -101,9 +101,11 @@ function CreateRace({ onCancel }: { onCancel: () => void }) {
       </div>
       <h3>Věkové skupiny</h3>
       <p className="muted">
-        Věk = rok závodu − ročník narození. Hranice jsou včetně a skupiny se nesmí překrývat. Z
-        každé skupiny vzniknou 4 kategorie (muži/ženy × místní/hosté) a výchozí checkpointy start →
-        konec plavání → konec kola → cíl.
+        Předvyplněné jsou kategorie Vlkančického triatlonu. Věk = rok závodu − ročník narození.
+        Hranice jsou včetně a běžné skupiny se (pro každé pohlaví) nesmí překrývat. Z každé skupiny
+        vzniknou kategorie pohlaví × místní/hosté (u skupiny „jen muži/ženy“ jen pro to pohlaví). Do{' '}
+        <em>volitelné</em> skupiny (např. Super ženy na dlouhé trati) se závodník zařadí jen volbou
+        při registraci. Délky tratí jsou výchozí pro kategorie, upravit je jde i později.
       </p>
       <AgeGroupsEditor
         value={form.ageGroups}

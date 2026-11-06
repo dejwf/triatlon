@@ -47,8 +47,11 @@ async function readFile(file: File): Promise<Row[]> {
 }
 
 function downloadTemplate() {
-  const example = ['Jan', 'Novák', '1990', 'M', 'místní', ''];
-  const csv = `﻿${IMPORT_TEMPLATE_HEADER.join(';')}\n${example.join(';')}\n`;
+  const examples = [
+    ['Jan', 'Novák', '1990', 'M', 'místní', '', 'Honza', 'neformální', ''],
+    ['Eva', 'Malá', '1992', 'Ž', 'host', '', '', 'formální', 'Super ženy'],
+  ];
+  const csv = `﻿${[IMPORT_TEMPLATE_HEADER, ...examples].map((r) => r.join(';')).join('\n')}\n`;
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const a = Object.assign(document.createElement('a'), {
     href: url,
@@ -109,8 +112,10 @@ export function ImportTab() {
       <p className="muted">
         Nahrajte CSV nebo XLSX s hlavičkou. Rozpoznávané sloupce:{' '}
         <strong>jméno, příjmení, ročník</strong> (nebo datum narození), <strong>pohlaví</strong>{' '}
-        (M/Ž), <strong>lokalita</strong> (místní/host) a volitelně <strong>číslo</strong> — bez
-        čísla se přidělí další volné v kategorii. Importují se buď všechny řádky, nebo žádný.{' '}
+        (M/Ž), <strong>lokalita</strong> (místní/host) a volitelně <strong>číslo</strong> (bez čísla
+        se přidělí další volné v kategorii), <strong>přezdívka</strong>, <strong>oslovení</strong>{' '}
+        (formální/neformální) a <strong>kategorie</strong> — jen pro volitelnou kategorii (např.
+        Super ženy), jinak se určí podle věku. Importují se buď všechny řádky, nebo žádný.{' '}
         <button type="button" className="link" onClick={downloadTemplate}>
           Stáhnout šablonu CSV
         </button>

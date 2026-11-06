@@ -1,6 +1,7 @@
 import {
   birthYearRange,
-  GENDER_LABEL,
+  groupHasGender,
+  groupName,
   LOCALITY_LABEL,
   type AgeGroup,
   type Gender,
@@ -59,7 +60,11 @@ export async function createRaceWithDefaults(
   return race;
 }
 
-/** Vytvoří kategorie pro všechny kombinace věkové skupiny, pohlaví a lokality a namapuje na ně všechny checkpointy závodu. */
+/**
+ * Vytvoří kategorie pro všechny kombinace věkové skupiny, pohlaví (u skupiny jen pro jedno
+ * pohlaví jen to) a lokality, s výchozími délkami tratí skupiny, a namapuje na ně všechny
+ * checkpointy závodu.
+ */
 export async function createCategories(
   tx: Prisma.TransactionClient,
   raceId: string,
@@ -69,12 +74,13 @@ export async function createCategories(
   const checkpoints = await tx.checkpoint.findMany({ where: { raceId }, select: { id: true } });
   for (const group of ageGroups) {
     const range = birthYearRange(year, group);
-    for (const gender of GENDERS) {
+    for (const gender of GENDERS.filter((g) => groupHasGender(group, g))) {
       for (const locality of LOCALITIES) {
         await tx.category.create({
           data: {
             raceId,
-            name: `${group.label} ${GENDER_LABEL[gender]} ${LOCALITY_LABEL[locality]}`,
+            name: `${groupName(group, gender)} ${LOCALITY_LABEL[locality]}`,
+            distances: group.distances ?? undefined,
             ageGroupLabel: group.label,
             birthYearFrom: range.from,
             birthYearTo: range.to,

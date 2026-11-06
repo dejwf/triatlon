@@ -279,8 +279,16 @@ tr.editing select {
   gap: 0.25rem;
 }
 
-.age-groups input {
+.age-groups {
+  overflow-x: auto;
+}
+
+.age-groups input:not([type='checkbox']) {
   width: 8rem;
+}
+
+.age-groups input.short {
+  width: 5rem;
 }
 
 @media (max-width: 600px) {

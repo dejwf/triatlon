@@ -94,8 +94,8 @@ function SettingsForm({ race }: { race: RaceDetailDto }) {
         </p>
       ) : (
         <p className="muted">
-          Uložením změny věkových skupin se kategorie vytvoří znovu (nastavení délek tratí a
-          checkpointů kategorií se ztratí).
+          Uložením změny věkových skupin se kategorie vytvoří znovu (délky tratí se nastaví podle
+          skupin, úpravy délek a checkpointů v kategoriích se ztratí).
         </p>
       )}
       <AgeGroupsEditor

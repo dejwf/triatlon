@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AgeGroups,
+  groupName,
   type CategoryDto,
   type CategoryUpdateInput,
   type CheckpointDto,
@@ -111,25 +112,31 @@ export class RacesService {
     });
     const ageGroups = AgeGroups.parse(race.ageGroups);
     const groupOrder = new Map(ageGroups.map((g, i) => [g.label, i]));
+    const groupByLabel = new Map(ageGroups.map((g) => [g.label, g]));
     const categories: CategoryDto[] = race.categories
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        ageGroupLabel: c.ageGroupLabel,
-        birthYearFrom: c.birthYearFrom,
-        birthYearTo: c.birthYearTo,
-        gender: c.gender,
-        locality: c.locality,
-        distances: c.distances as CategoryDto['distances'],
-        checkpointIds: c.checkpoints.map((cc) => cc.checkpointId),
-        participantCount: c._count.participants,
-        closedAt: c.closedAt?.toISOString() ?? null,
-      }))
+      .map((c) => {
+        const group = groupByLabel.get(c.ageGroupLabel);
+        return {
+          id: c.id,
+          name: c.name,
+          ageGroupLabel: c.ageGroupLabel,
+          groupName: group ? groupName(group, c.gender) : c.ageGroupLabel,
+          elective: group?.elective ?? false,
+          birthYearFrom: c.birthYearFrom,
+          birthYearTo: c.birthYearTo,
+          gender: c.gender,
+          locality: c.locality,
+          distances: c.distances as CategoryDto['distances'],
+          checkpointIds: c.checkpoints.map((cc) => cc.checkpointId),
+          participantCount: c._count.participants,
+          closedAt: c.closedAt?.toISOString() ?? null,
+        };
+      })
       .sort(
         (a, b) =>
           (groupOrder.get(a.ageGroupLabel) ?? 0) - (groupOrder.get(b.ageGroupLabel) ?? 0) ||
           a.gender.localeCompare(b.gender) ||
-          a.locality.localeCompare(b.locality),
+          b.locality.localeCompare(a.locality),
       );
     return {
       id: race.id,

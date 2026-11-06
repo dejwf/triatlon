@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, type OnModuleDestroy } from '@nestjs/common';
 import {
+  AgeGroups,
   GENDER_LABEL,
+  groupName,
   rankCombined,
   type CategoryResultsDto,
   type PublicCategoryDto,
@@ -91,6 +93,7 @@ export class PublicService implements OnModuleDestroy {
       }),
     ]);
     const hiddenIds = new Set(hidden.map((p) => p.id));
+    const ageGroups = AgeGroups.parse(race.ageGroups);
     const metaById = new Map(meta.map((c) => [c.id, c]));
     const seqOf = new Map(race.checkpoints.map((c) => [c.id, c.seq]));
     const shown = results.categories.filter((c) => c.counts.registered > 0);
@@ -165,7 +168,11 @@ export class PublicService implements OnModuleDestroy {
         race.checkpoints,
         cats.flatMap((c) => c.overrides),
       );
-      return toDto(key, `${m.ageGroupLabel} ${GENDER_LABEL[m.gender]}`, cats, rows);
+      const group = ageGroups.find((g) => g.label === m.ageGroupLabel);
+      const name = group
+        ? groupName(group, m.gender)
+        : `${m.ageGroupLabel} ${GENDER_LABEL[m.gender]}`;
+      return toDto(key, name, cats, rows);
     });
 
     return {

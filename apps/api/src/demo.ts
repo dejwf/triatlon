@@ -6,7 +6,7 @@
  *
  *   pnpm --filter @triatlon/api demo
  */
-import { AgeGroups } from '@triatlon/shared';
+import { AgeGroups, DEFAULT_AGE_GROUPS } from '@triatlon/shared';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client';
 import { createRaceWithDefaults } from './races/race-factory';
@@ -58,10 +58,7 @@ async function main(): Promise<void> {
       createRaceWithDefaults(tx, {
         name: NAME,
         date,
-        ageGroups: AgeGroups.parse([
-          { label: '9–10', minAge: 9, maxAge: 10 },
-          { label: '31–40', minAge: 31, maxAge: 40 },
-        ]),
+        ageGroups: AgeGroups.parse(DEFAULT_AGE_GROUPS),
       }),
     );
     const bike = await prisma.discipline.findFirstOrThrow({
@@ -90,8 +87,8 @@ async function main(): Promise<void> {
 
     const categories = await prisma.category.findMany({ where: { raceId: race.id } });
     const plan = [
-      { group: '31–40', gender: 'male', count: 12, startMinAgo: 70, pace: 1 },
-      { group: '31–40', gender: 'female', count: 8, startMinAgo: 55, pace: 1.1 },
+      { group: 'Muži do 40', gender: 'male', count: 12, startMinAgo: 70, pace: 1 },
+      { group: 'Ženy', gender: 'female', count: 8, startMinAgo: 55, pace: 1.1 },
       { group: '9–10', gender: 'male', count: 6, startMinAgo: 25, pace: 0.4 },
     ] as const;
 
@@ -105,7 +102,7 @@ async function main(): Promise<void> {
         include: { checkpoints: true },
       });
       // Sub-checkpoint jen pro dospělé.
-      if (p.group === '31–40') {
+      if (p.group !== '9–10') {
         await prisma.categoryCheckpoint.create({
           data: { categoryId: category.id, checkpointId: hill.id },
         });
@@ -139,12 +136,12 @@ async function main(): Promise<void> {
         const marks = [
           { cp: cps[0]!.id, t: 0 },
           { cp: cps[1]!.id, t: legs[0]! },
-          ...(p.group === '31–40' ? [{ cp: hill.id, t: legs[0]! + legs[1]! * 0.55 }] : []),
+          ...(p.group !== '9–10' ? [{ cp: hill.id, t: legs[0]! + legs[1]! * 0.55 }] : []),
           { cp: endBike.id, t: legs[0]! + legs[1]! },
           { cp: cps.at(-1)!.id, t: legs[0]! + legs[1]! + legs[2]! },
         ];
-        // Remíza: první dva muži 31–40 doběhnou ve stejné sekundě.
-        if (p.group === '31–40' && p.gender === 'male' && i < 2) {
+        // Remíza: první dva muži do 40 doběhnou ve stejné sekundě.
+        if (p.group === 'Muži do 40' && p.gender === 'male' && i < 2) {
           marks.at(-1)!.t = 3500 + i * 0.4;
         }
         let ord = 0;

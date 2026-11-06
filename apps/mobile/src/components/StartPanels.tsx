@@ -9,6 +9,7 @@ import {
   GENDER_LABEL,
   LOCALITY_LABEL,
   OnSiteRegistrationInput,
+  electiveGroups,
   resolveCategory,
   type CheckInStatus,
   type Gender,
@@ -262,19 +263,29 @@ export function RegisterPanel({
   const [gender, setGender] = useState<Gender | null>(null);
   const [locality, setLocality] = useState<Locality>('local');
   const [bib, setBib] = useState('');
+  /** Zvolená volitelná kategorie (např. Super ženy); '' = podle věku. */
+  const [elective, setElective] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
   const year = Number(birthYear);
+  const electives = useMemo(
+    () =>
+      gender && birthYear.length === 4
+        ? electiveGroups(race.year, year, gender, race.ageGroups)
+        : [],
+    [gender, birthYear, year, race],
+  );
+  const electiveGroup = electives.some((g) => g.label === elective) ? elective : '';
   const resolved = useMemo(() => {
     if (!gender || birthYear.length !== 4) return null;
     return resolveCategory(
-      { birthYear: year, gender, locality },
+      { birthYear: year, gender, locality, electiveGroup: electiveGroup || null },
       race.year,
       race.ageGroups,
       race.categories,
     );
-  }, [gender, birthYear, year, locality, race]);
+  }, [gender, birthYear, year, locality, electiveGroup, race]);
   const category = resolved && 'category' in resolved ? resolved.category : null;
   const suggested = category ? nextFreeBib(participants, category.id) : null;
 
@@ -289,6 +300,7 @@ export function RegisterPanel({
       birthYear: year,
       gender,
       locality,
+      electiveGroup: electiveGroup || null,
       bib: bib ? Number(bib) : (suggested ?? undefined),
     });
     if (!parsed.success) {
@@ -318,6 +330,7 @@ export function RegisterPanel({
     setBirthYear('');
     setGender(null);
     setBib('');
+    setElective('');
   }
 
   return (
@@ -378,6 +391,19 @@ export function RegisterPanel({
           ]}
           onChange={setLocality}
         />
+        {electives.length > 0 && (
+          <>
+            <Text style={s.label}>Kategorie</Text>
+            <Segmented
+              value={electiveGroup}
+              options={[
+                { value: '', label: 'podle věku' },
+                ...electives.map((g) => ({ value: g.label, label: g.label })),
+              ]}
+              onChange={setElective}
+            />
+          </>
+        )}
         {resolved && 'error' in resolved && <ErrorText>{resolved.error}</ErrorText>}
         {category && <Muted>Kategorie: {category.name}</Muted>}
         <Field

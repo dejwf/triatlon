@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AgeGroups,
   computeCategoryResults,
   displayNames,
   projectEvents,
@@ -86,6 +87,8 @@ export class ResultsService {
       })),
     );
     const checkpointById = new Map(race.checkpoints.map((c) => [c.id, c]));
+    const categoryById = new Map(race.categories.map((c) => [c.id, c]));
+    const groupOrder = new Map(AgeGroups.parse(race.ageGroups).map((g, i) => [g.label, i]));
     const tables = new Map<string, typeof people>();
     for (const p of people) {
       const key = `${p.category.ageGroupLabel}|${p.category.gender}`;
@@ -118,7 +121,16 @@ export class ResultsService {
           }),
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name, 'cs'));
+      // Pořadí jako ve věkových skupinách závodu (děti → dospělí), pak pohlaví a lokalita.
+      .sort((a, b) => {
+        const ca = categoryById.get(a.categoryId)!;
+        const cb = categoryById.get(b.categoryId)!;
+        return (
+          (groupOrder.get(ca.ageGroupLabel) ?? 0) - (groupOrder.get(cb.ageGroupLabel) ?? 0) ||
+          ca.gender.localeCompare(cb.gender) ||
+          cb.locality.localeCompare(ca.locality)
+        );
+      });
 
     const userIds = new Set([
       ...events.map((e) => e.userId),

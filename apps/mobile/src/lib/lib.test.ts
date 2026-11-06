@@ -32,6 +32,8 @@ function category(id: string, gender: 'male' | 'female'): CategoryDto {
     id,
     name: id,
     ageGroupLabel: '31–40',
+    groupName: `31–40 ${gender === 'male' ? 'muži' : 'ženy'}`,
+    elective: false,
     birthYearFrom: 1986,
     birthYearTo: 1995,
     gender,

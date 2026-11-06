@@ -76,7 +76,8 @@ export function ParticipantsTab() {
 
       <p className="muted">
         Zobrazeno {rows.length} z {participants.data.length} závodníků. Kategorie se přiřazuje
-        automaticky podle ročníku, pohlaví a lokality.
+        automaticky podle ročníku, pohlaví a lokality; volitelnou kategorii (např. Super ženy) je
+        potřeba zvolit.
       </p>
       <table>
         <thead>
@@ -165,6 +166,7 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
         publicName: d.get('publicName') === 'on',
         nickname: String(d.get('nickname') ?? '').trim() || null,
         formal: d.get('informal') !== 'on',
+        electiveGroup: String(d.get('electiveGroup') ?? '') || null,
       },
       // Formulář zůstává otevřený pro zadání dalšího závodníka.
       { onSuccess: () => form.reset() },
@@ -200,6 +202,7 @@ function AddParticipant({ race, onDone }: { race: RaceDetailDto; onDone: () => v
           <option value="local">místní</option>
           <option value="guest">host</option>
         </select>
+        <ElectiveSelect race={race} name="electiveGroup" />
         <input name="bib" type="number" min={1} placeholder="Číslo (auto)" className="short" />
         <label title="Závodník může zveřejnění jména na veřejné výsledkové tabuli odmítnout">
           <input name="publicName" type="checkbox" defaultChecked /> jméno veřejně
@@ -236,6 +239,9 @@ function EditParticipant({
   onDone: () => void;
 }) {
   const [form, setForm] = useState({ ...p });
+  const race = useRace(raceId).data;
+  const current = race?.categories.find((c) => c.id === p.categoryId);
+  const [elective, setElective] = useState(current?.elective ? current.ageGroupLabel : '');
   const queryClient = useQueryClient();
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: keys.participants(raceId) });
@@ -330,6 +336,7 @@ function EditParticipant({
             </option>
           ))}
         </select>
+        {race && <ElectiveSelect race={race} value={elective} onChange={setElective} />}
       </td>
       <td>
         <select
@@ -375,6 +382,7 @@ function EditParticipant({
               publicName: form.publicName,
               nickname: form.nickname?.trim() || null,
               formal: form.formal,
+              electiveGroup: elective || null,
             })
           }
         >
@@ -415,5 +423,40 @@ function EditParticipant({
         <ErrorBox error={save.error ?? remove.error ?? exportData.error ?? anonymize.error} />
       </td>
     </tr>
+  );
+}
+
+/**
+ * Volba volitelné kategorie (např. Super ženy na dlouhé trati); prázdné = podle věku. Zobrazí
+ * se jen v závodě, který volitelné skupiny má. Věk a pohlaví ověří server.
+ */
+function ElectiveSelect({
+  race,
+  name,
+  value,
+  onChange,
+}: {
+  race: RaceDetailDto;
+  name?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
+  const electives = race.ageGroups.filter((g) => g.elective);
+  if (electives.length === 0) return null;
+  return (
+    <select
+      name={name}
+      value={value}
+      defaultValue={value === undefined ? '' : undefined}
+      onChange={onChange && ((e) => onChange(e.target.value))}
+      title="Volitelná kategorie (jinak se kategorie určí podle věku)"
+    >
+      <option value="">kategorie podle věku</option>
+      {electives.map((g) => (
+        <option key={g.label} value={g.label}>
+          {g.label}
+        </option>
+      ))}
+    </select>
   );
 }

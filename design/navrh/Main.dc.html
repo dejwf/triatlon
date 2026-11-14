@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Výsledky – Vlkančický triatlon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f6f8}
+a{color:#0b6bcb}a:hover{color:#08529c}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #1b1d21; background: #f5f6f8; min-height: 100vh; font-size: 15px; line-height: 1.45">
+  <header style="background: #ffffff; border-bottom: 1px solid #d9dce1">
+    <div style="max-width: 1320px; margin: 0 auto; padding: 20px 32px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 13px; color: #5f6672; font-weight: 500">Sobota 7. 8. 2027 · Vlkančice</div>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em">Vlkančický triatlon 2027</h1>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+        <span style="display: inline-flex; align-items: center; gap: 8px; background: #fdecec; color: #a12121; font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 999px">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #c22a2a; animation: pulse 1.6s infinite"></span>ŽIVĚ
+        </span>
+        <span style="font-size: 13px; color: #5f6672">Aktualizováno před 3 s</span>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1320px; margin: 0 auto; padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+    <nav aria-label="Kategorie" style="display: flex; gap: 8px; flex-wrap: wrap">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+        <a href="#" style="{{c.style}}">{{c.label}}<span style="font-weight: 500; opacity: .8"> · {{c.n}}</span></a>
+      </sc-for>
+    </nav>
+
+    <section style="background: #ffffff; border: 1px solid #d9dce1; border-radius: 12px; overflow: hidden">
+      <div style="padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e6e8eb">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700">Muži do 40</h2>
+          <div style="font-size: 13px; color: #5f6672">Plavání 400 m · Kolo 12 km · Běh 4 km · start 10:15:00 · <strong style="color: #9a6700">průběžné výsledky</strong> (kategorie zatím není uzavřená)</div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <div style="display: flex; flex-direction: column; padding: 8px 14px; border-radius: 8px; background: #f5f6f8; min-width: 88px"><span style="font-size: 12px; color: #5f6672">Odstartovalo</span><strong style="font-size: 20px">12</strong></div>
+          <div style="display: flex; flex-direction: column; padding: 8px 14px; border-radius: 8px; background: #e7f4ea; min-width: 88px"><span style="font-size: 12px; color: #1b6a33">V cíli</span><strong style="font-size: 20px; color: #145a29">9</strong></div>
+          <div style="display: flex; flex-direction: column; padding: 8px 14px; border-radius: 8px; background: #eef5fd; min-width: 88px"><span style="font-size: 12px; color: #0a5aa8">Na trati</span><strong style="font-size: 20px; color: #08478a">2</strong></div>
+          <div style="display: flex; flex-direction: column; padding: 8px 14px; border-radius: 8px; background: #f5f6f8; min-width: 88px"><span style="font-size: 12px; color: #5f6672">DNF</span><strong style="font-size: 20px">1</strong></div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; background: #fafbfc; border-bottom: 1px solid #e6e8eb">
+        <div role="group" aria-label="Pohled" style="display: inline-flex; border: 1px solid #d9dce1; border-radius: 8px; overflow: hidden; background: #ffffff">
+          <button style="border: 0; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; background: #0b6bcb; color: #ffffff">Společně (D + H)</button>
+          <button style="border: 0; border-left: 1px solid #d9dce1; padding: 8px 14px; font: inherit; font-size: 13px; background: #ffffff; color: #1b1d21">Domácí</button>
+          <button style="border: 0; border-left: 1px solid #d9dce1; padding: 8px 14px; font: inherit; font-size: 13px; background: #ffffff; color: #1b1d21">Hosté</button>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center; font-size: 13px; color: #5f6672; flex-wrap: wrap">
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #0b6bcb"></span>Plavání</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #ef6c00"></span>Kolo</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #6a1b9a"></span>Běh</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 18px; height: 10px; border-radius: 3px; border: 1.5px dashed #8a929e"></span>Na trati</span>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto">
+        <div style="min-width: 1160px">
+          <div style="display: grid; grid-template-columns: 52px 56px 40px minmax(200px, 1.3fr) minmax(260px, 2fr) 70px 70px 70px 84px 70px 92px; gap: 12px; padding: 10px 24px; font-size: 12px; font-weight: 600; color: #5f6672; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #e6e8eb">
+            <span>Poř.</span><span>Č.</span><span title="Domácí / host">D/H</span><span>Závodník</span><span>Rozložení času</span><span style="text-align: right">Plav.</span><span style="text-align: right">Kolo</span><span style="text-align: right">Běh</span><span style="text-align: right">Celkem</span><span style="text-align: right">Ztráta</span><span style="text-align: center">Vývoj poř.</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <div style="{{r.rowStyle}}">
+              <div style="display: grid; grid-template-columns: 52px 56px 40px minmax(200px, 1.3fr) minmax(260px, 2fr) 70px 70px 70px 84px 70px 92px; gap: 12px; padding: 12px 24px; align-items: center; font-variant-numeric: tabular-nums">
+                <span style="{{r.rankStyle}}">{{r.rank}}</span>
+                <span style="font-weight: 600">{{r.bib}}</span>
+                <span style="{{r.locStyle}}" title="{{r.locTitle}}">{{r.loc}}</span>
+                <span style="display: flex; flex-direction: column; min-width: 0">
+                  <span style="{{r.nameStyle}}">{{r.name}}</span>
+                  <span style="font-size: 12px; color: #5f6672">{{r.sub}}</span>
+                </span>
+                <span style="display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: #f0f1f4">
+                  <span style="{{r.swimBar}}"></span><span style="{{r.bikeBar}}"></span><span style="{{r.runBar}}"></span><span style="{{r.restBar}}"></span>
+                </span>
+                <span style="text-align: right">{{r.swim}}</span>
+                <span style="text-align: right">{{r.bike}}</span>
+                <span style="text-align: right">{{r.run}}</span>
+                <span style="text-align: right; font-weight: 700">{{r.total}}</span>
+                <span style="text-align: right; color: #5f6672">{{r.gap}}</span>
+                <span style="text-align: center; font-size: 13px; color: #5f6672">{{r.trend}}</span>
+              </div>
+              <sc-if value="{{r.expanded}}" hint-placeholder-val="{{false}}">
+                <div style="margin: 0 24px 16px 132px; padding: 16px 20px; border-radius: 10px; background: #ffffff; border: 1px solid #cfe0f4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+                  <div style="display: flex; flex-direction: column; gap: 10px">
+                    <strong style="font-size: 13px">Úseky proti mediánu kategorie</strong>
+                    <sc-for list="{{detail}}" as="d" hint-placeholder-count="3">
+                      <div style="display: grid; grid-template-columns: 64px 1fr 120px; gap: 10px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums">
+                        <span style="color: #5f6672">{{d.label}}</span>
+                        <span style="display: flex; flex-direction: column; gap: 3px">
+                          <span style="{{d.meBar}}"></span>
+                          <span style="{{d.medBar}}"></span>
+                        </span>
+                        <span style="{{d.diffStyle}}">{{d.me}} ({{d.diff}})</span>
+                      </div>
+                    </sc-for>
+                    <span style="font-size: 12px; color: #5f6672">Plný pruh = závodník, světlý = medián dokončených</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 10px">
+                    <strong style="font-size: 13px">Čas od startu na checkpointech</strong>
+                    <div style="display: flex; align-items: flex-start; position: relative; padding-top: 6px">
+                      <div style="position: absolute; left: 10px; right: 10px; top: 13px; height: 2px; background: #d9dce1"></div>
+                      <sc-for list="{{cps}}" as="p" hint-placeholder-count="4">
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative">
+                          <span style="width: 16px; height: 16px; border-radius: 50%; background: #0b6bcb; border: 3px solid #ffffff; box-shadow: 0 0 0 1px #0b6bcb"></span>
+                          <span style="font-size: 12px; color: #5f6672">{{p.name}}</span>
+                          <strong style="font-size: 14px; font-variant-numeric: tabular-nums">{{p.t}}</strong>
+                          <span style="font-size: 12px; color: #5f6672">{{p.rank}}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    <p style="margin: 0; font-size: 13px; color: #5f6672">Oficiální pořadí pro vyhlášení je pořadí v kategorii (domácí a hosté zvlášť): <strong>D 1.</strong> / <strong>H 1.</strong> Jména zobrazujeme jen se souhlasem závodníka.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var C = { swim: '#0b6bcb', bike: '#ef6c00', run: '#6a1b9a' };
+    function fmt(s) {
+      if (s == null) return '–';
+      var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+      var mm = h ? String(m).padStart(2, '0') : String(m);
+      return (h ? h + ':' : '') + mm + ':' + String(x).padStart(2, '0');
+    }
+    var data = [
+      { bib: 12, loc: 'D', name: 'Jan „Honza“ Novák', t: [412, 1342, 958] },
+      { bib: 7, loc: 'H', name: 'Petr Dvořák', t: [398, 1390, 941] },
+      { bib: 3, loc: 'D', name: 'Tomáš Svoboda', t: [455, 1310, 1001] },
+      { bib: 21, loc: 'D', name: 'Martin „Marty“ Černý', t: [430, 1402, 980] },
+      { bib: 15, loc: 'H', name: 'Lukáš Procházka', t: [470, 1385, 1012] },
+      { bib: 9, loc: 'D', name: 'Jakub Kučera', t: [445, 1450, 1003] },
+      { bib: 4, loc: 'H', name: null, t: [501, 1420, 1040] },
+      { bib: 18, loc: 'D', name: 'Filip Horák', t: [489, 1498, 1075] },
+      { bib: 11, loc: 'D', name: 'David Němec', t: [520, 1530, 1120] },
+      { bib: 2, loc: 'H', name: 'Michal Pokorný', t: [462, 1440, null], at: 'Běží · T2 v 10:47:22' },
+      { bib: 25, loc: 'D', name: 'Vojtěch Marek', t: [540, null, null], at: 'Na kole · T1 v 10:24:00' },
+      { bib: 6, loc: 'D', name: 'Adam Pospíšil', t: [480, null, null], dnf: true, at: 'Nedokončil (kolo)' }
+    ];
+    data.forEach(function (d) {
+      d.done = d.t[2] != null;
+      d.cum = [d.t[0], d.t[1] != null ? d.t[0] + d.t[1] : null, d.done ? d.t[0] + d.t[1] + d.t[2] : null];
+    });
+    // pořadí po každém úseku
+    [0, 1, 2].forEach(function (k) {
+      var have = data.filter(function (d) { return d.cum[k] != null; }).sort(function (a, b) { return a.cum[k] - b.cum[k]; });
+      have.forEach(function (d, i) { d['r' + k] = i + 1; });
+    });
+    var finished = data.filter(function (d) { return d.done; });
+    var leader = finished[0].cum[2];
+    var scale = 3300;
+    var catRank = { D: 0, H: 0 };
+    var med = [0, 1, 2].map(function (k) {
+      var v = finished.map(function (d) { return d.t[k]; }).sort(function (a, b) { return a - b; });
+      return v[Math.floor(v.length / 2)];
+    });
+    var self = this;
+    var rows = data.map(function (d, i) {
+      var pct = function (s) { return (s / scale * 100).toFixed(2) + '%'; };
+      var bar = function (s, col) { return s == null ? 'width:0' : 'width:' + pct(s) + ';background:' + col; };
+      var doneSum = d.t.reduce(function (a, b) { return a + (b || 0); }, 0);
+      var est = d.dnf ? 0 : Math.max(0, 2900 - doneSum);
+      var cr = '';
+      if (d.done) { catRank[d.loc] += 1; cr = d.loc + ' ' + catRank[d.loc] + '.'; }
+      var trend = d.done ? d.r0 + ' → ' + d.r1 + ' → ' + d.r2 : (d.r1 ? d.r0 + ' → ' + d.r1 + ' → …' : (d.dnf ? '—' : d.r0 + ' → …'));
+      var expanded = i === 0;
+      return {
+        rank: d.done ? (i + 1) + '.' : (d.dnf ? 'DNF' : '–'),
+        rankStyle: 'font-weight:800;font-size:' + (d.done ? '17px' : '13px') + ';color:' + (i < 3 && d.done ? ['#9a6700', '#5f6672', '#8a4b1f'][i] : (d.dnf ? '#a12121' : '#1b1d21')),
+        bib: d.bib,
+        loc: d.loc,
+        locTitle: d.loc === 'D' ? 'Domácí' : 'Host',
+        locStyle: 'display:inline-flex;justify-content:center;width:26px;padding:2px 0;border-radius:6px;font-size:12px;font-weight:700;' + (d.loc === 'D' ? 'background:#eef5fd;color:#08478a' : 'background:#fff4d6;color:#7a5200'),
+        name: d.name || 'Jméno nezveřejněno',
+        nameStyle: 'font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (d.name ? '' : 'font-style:italic;color:#5f6672;font-weight:500'),
+        sub: d.done ? 'Pořadí v kategorii: ' + cr : d.at,
+        swimBar: bar(d.t[0], C.swim),
+        bikeBar: bar(d.t[1], C.bike),
+        runBar: bar(d.t[2], C.run),
+        restBar: d.done || d.dnf ? 'width:0' : 'width:' + pct(est) + ';box-sizing:border-box;border:1.5px dashed #8a929e;border-left:0;border-radius:0 4px 4px 0',
+        swim: fmt(d.t[0]), bike: fmt(d.t[1]), run: fmt(d.t[2]),
+        total: d.done ? fmt(d.cum[2]) : (d.dnf ? 'DNF' : 'na trati'),
+        gap: d.done ? (i === 0 ? '' : '+' + fmt(d.cum[2] - leader)) : '',
+        trend: trend,
+        expanded: expanded,
+        rowStyle: 'border-bottom:1px solid #eef0f2;' + (expanded ? 'background:#eef5fd' : (d.done ? '' : 'background:#fcfcfd'))
+      };
+    });
+    var me = data[0];
+    var maxSeg = [560, 1560, 1140];
+    var labels = ['Plavání', 'Kolo', 'Běh'];
+    var cols = [C.swim, C.bike, C.run];
+    var detail = [0, 1, 2].map(function (k) {
+      var diff = me.t[k] - med[k];
+      return {
+        label: labels[k],
+        me: fmt(me.t[k]),
+        diff: (diff <= 0 ? '−' : '+') + fmt(Math.abs(diff)),
+        diffStyle: 'text-align:right;font-weight:600;color:' + (diff <= 0 ? '#1b6a33' : '#a12121'),
+        meBar: 'display:block;height:8px;border-radius:4px;background:' + cols[k] + ';width:' + (me.t[k] / maxSeg[k] * 100).toFixed(1) + '%',
+        medBar: 'display:block;height:8px;border-radius:4px;background:' + cols[k] + ';opacity:.3;width:' + (med[k] / maxSeg[k] * 100).toFixed(1) + '%'
+      };
+    });
+    var cps = [
+      { name: 'Start', t: '0:00', rank: '10:15:00' },
+      { name: 'T1', t: fmt(me.cum[0]), rank: me.r0 + '. místo' },
+      { name: 'T2', t: fmt(me.cum[1]), rank: me.r1 + '. místo' },
+      { name: 'Cíl', t: fmt(me.cum[2]), rank: me.r2 + '. místo' }
+    ];
+    var catList = [['Muži do 40', 12, true], ['Muži nad 40', 9], ['Ženy', 14], ['Super ženy', 4], ['15–16 hoši', 6], ['15–16 dívky', 5], ['13–14', 11], ['11–12', 13], ['9–10', 10], ['6–8', 15], ['0–5', 8]];
+    var cats = catList.map(function (c) {
+      return { label: c[0], n: c[1], style: 'text-decoration:none;font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;' + (c[2] ? 'background:#0b6bcb;color:#ffffff;border:1px solid #0b6bcb' : 'background:#ffffff;color:#1b1d21;border:1px solid #d9dce1') };
+    });
+    return { rows: rows, detail: detail, cps: cps, cats: cats };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Administrace – přehled závodu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f6f8}
+a{color:#0b6bcb}a:hover{color:#08529c}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #1b1d21; background: #f5f6f8; min-height: 100vh; font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums">
+  <header style="background: #ffffff; border-bottom: 1px solid #d9dce1">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+      <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap">
+        <strong style="font-size: 16px">Triatlon · administrace</strong>
+        <nav style="display: flex; gap: 18px; font-size: 14px"><a href="#" style="color: #1b1d21; font-weight: 600; text-decoration: none">Závody</a><a href="#" style="color: #5f6672; text-decoration: none">Uživatelé</a></nav>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; font-size: 13px; color: #5f6672">admin@example.com · Admin <button style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #d9dce1; border-radius: 6px; background: #f5f6f8">Odhlásit</button></div>
+    </div>
+    <div style="max-width: 1360px; margin: 0 auto; padding: 0 32px; display: flex; flex-wrap: wrap; gap: 4px 24px; align-items: flex-end; justify-content: space-between">
+      <nav aria-label="Záložky závodu" style="display: flex; gap: 22px; flex-wrap: wrap">
+        <a href="#" style="padding: 10px 0; font-weight: 700; color: #0b6bcb; border-bottom: 3px solid #0b6bcb; text-decoration: none">Přehled</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Kategorie</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Checkpointy</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Závodníci</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Import</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Organizátoři</a>
+        <a href="#" style="padding: 10px 0; color: #5f6672; text-decoration: none">Výsledky</a>
+      </nav>
+      <div style="padding: 10px 0; font-size: 13px; color: #5f6672">Vlkančický triatlon 2027 · <strong style="color: #1b7a3a">probíhá</strong> · 11:02:47</div>
+    </div>
+  </header>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="6">
+        <div style="background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 13px; color: #5f6672">{{k.label}}</span>
+          <strong style="{{k.valStyle}}">{{k.val}}</strong>
+          <span style="font-size: 12px; color: #5f6672">{{k.note}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section style="flex: 999 1 640px; min-width: 0; background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px">
+        <div style="padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-bottom: 1px solid #e6e8eb">
+          <h2 style="margin: 0; font-size: 17px">Stav kategorií</h2>
+          <div style="display: flex; gap: 14px; font-size: 12px; color: #5f6672; flex-wrap: wrap">
+            <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1b7a3a"></span>V cíli</span>
+            <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 2px; background: #6aaef0"></span>Na trati</span>
+            <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 2px; background: #c22a2a"></span>DNF</span>
+            <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 2px; background: #e3e6ea"></span>Čeká na start</span>
+          </div>
+        </div>
+        <div style="overflow-x: auto">
+          <div style="min-width: 620px">
+            <sc-for list="{{cats}}" as="c" hint-placeholder-count="10">
+              <div style="display: grid; grid-template-columns: 150px 108px minmax(160px, 1fr) 84px 118px; gap: 14px; align-items: center; padding: 10px 20px; border-bottom: 1px solid #eef0f2">
+                <span style="display: flex; flex-direction: column"><strong style="font-size: 14px">{{c.name}}</strong><span style="font-size: 12px; color: #5f6672">{{c.sub}}</span></span>
+                <span style="{{c.badge}}">{{c.status}}</span>
+                <span style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #e3e6ea">
+                  <span style="{{c.b1}}"></span><span style="{{c.b2}}"></span><span style="{{c.b3}}"></span>
+                </span>
+                <span style="text-align: right; font-size: 13px"><strong>{{c.fin}}</strong> / {{c.total}}</span>
+                <span style="text-align: right">
+                  <sc-if value="{{c.canClose}}" hint-placeholder-val="{{false}}"><button style="font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid #0b6bcb; background: #0b6bcb; color: #ffffff">Uzavřít</button></sc-if>
+                  <sc-if value="{{c.action}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: #5f6672">{{c.action}}</span></sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section style="flex: 1 1 380px; min-width: 0; background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e6e8eb; display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-size: 17px">Telefony na checkpointech</h2><span style="font-size: 12px; color: #5f6672">7 zařízení</span></div>
+        <sc-for list="{{devices}}" as="d" hint-placeholder-count="7">
+          <div style="{{d.rowStyle}}">
+            <span style="{{d.dot}}"></span>
+            <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+              <strong style="font-size: 14px">{{d.cp}}</strong>
+              <span style="font-size: 12px; color: #5f6672; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.who}}</span>
+            </span>
+            <span style="display: flex; flex-direction: column; align-items: flex-end">
+              <span style="{{d.syncStyle}}">{{d.sync}}</span>
+              <span style="font-size: 12px; color: #5f6672">{{d.meta}}</span>
+            </span>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+      <section style="flex: 1 1 520px; min-width: 0; background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px">Průchody checkpointem Cíl</h2>
+          <select aria-label="Checkpoint" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid #d9dce1; border-radius: 6px; background: #ffffff"><option>Cíl</option><option>T2 – konec kola</option><option>T1 – konec plavání</option></select>
+        </div>
+        <div style="display: grid; grid-template-columns: 28px 1fr; gap: 8px">
+          <div style="display: flex; flex-direction: column; justify-content: space-between; height: 180px; font-size: 11px; color: #5f6672; text-align: right"><span>15</span><span>10</span><span>5</span><span>0</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="height: 180px; display: flex; align-items: flex-end; gap: 6px; border-bottom: 1px solid #d9dce1; background: linear-gradient(#eef0f2 1px, transparent 1px) 0 0 / 100% 60px">
+              <sc-for list="{{hist}}" as="h" hint-placeholder-count="12">
+                <span style="{{h.style}}" title="{{h.title}}"></span>
+              </sc-for>
+            </div>
+            <div style="display: flex; gap: 6px; font-size: 11px; color: #5f6672">
+              <sc-for list="{{hist}}" as="h" hint-placeholder-count="12"><span style="flex: 1; text-align: center">{{h.label}}</span></sc-for>
+            </div>
+          </div>
+        </div>
+        <span style="font-size: 12px; color: #5f6672">Počet zapsaných časů za 5 minut. Tmavší sloupec = probíhající interval. Špička kolem 10:50 = doběh dětských kategorií.</span>
+      </section>
+
+      <section style="flex: 1 1 420px; min-width: 0; background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e6e8eb; display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-size: 17px">Ke kontrole</h2><span style="font-size: 12px; font-weight: 700; color: #a12121; background: #fdecec; padding: 3px 10px; border-radius: 999px">3 otevřené</span></div>
+        <sc-for list="{{issues}}" as="i" hint-placeholder-count="3">
+          <div style="padding: 14px 20px; border-bottom: 1px solid #eef0f2; display: flex; gap: 12px; align-items: flex-start">
+            <span style="{{i.tag}}">{{i.kind}}</span>
+            <span style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+              <strong style="font-size: 14px">{{i.title}}</strong>
+              <span style="font-size: 13px; color: #5f6672">{{i.desc}}</span>
+            </span>
+            <button style="font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px; border: 1px solid #d9dce1; background: #f5f6f8">{{i.btn}}</button>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+
+    <section style="background: #ffffff; border: 1px solid #d9dce1; border-radius: 10px">
+      <div style="padding: 16px 20px; border-bottom: 1px solid #e6e8eb"><h2 style="margin: 0; font-size: 17px">Audit – poslední zásahy</h2></div>
+      <div style="overflow-x: auto">
+        <div style="min-width: 760px">
+          <sc-for list="{{audit}}" as="a" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: 80px 170px 130px minmax(0, 1fr); gap: 16px; padding: 10px 20px; border-bottom: 1px solid #eef0f2; font-size: 13px; align-items: baseline">
+              <span style="color: #5f6672">{{a.t}}</span>
+              <span>{{a.who}}</span>
+              <span style="{{a.tag}}">{{a.kind}}</span>
+              <span>{{a.what}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1480}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var kpis = [
+      ['Registrováno', '186', '12 na místě'],
+      ['Přítomno', '171', '15 nepřítomných', '#1b1d21'],
+      ['Na trati', '38', 'v 5 kategoriích', '#0b6bcb'],
+      ['V cíli', '119', '70 % přítomných', '#1b7a3a'],
+      ['DNF', '3', '', '#a12121'],
+      ['Uzavřené kategorie', '4 / 11', '2 připravené k uzavření']
+    ].map(function (k) { return { label: k[0], val: k[1], note: k[2] || ' ', valStyle: 'font-size:26px;font-weight:800;line-height:1.1;color:' + (k[3] || '#1b1d21') }; });
+
+    var st = {
+      closed: ['Uzavřená', 'background:#e7f4ea;color:#145a29'],
+      ready: ['Doběhnuto', 'background:#fff4d6;color:#7a5200'],
+      running: ['Probíhá', 'background:#eef5fd;color:#08478a'],
+      waiting: ['Nestartovala', 'background:#f0f1f4;color:#5f6672']
+    };
+    var raw = [
+      ['0–5', 'start 9:00', 'closed', 16, 0, 0, 16],
+      ['6–8', 'start 9:15', 'closed', 29, 0, 0, 29],
+      ['9–10', 'start 9:35', 'closed', 20, 0, 1, 21],
+      ['11–12', 'start 9:55', 'closed', 25, 0, 0, 25],
+      ['13–14', 'start 10:05', 'ready', 21, 0, 1, 22],
+      ['15–16', 'start 10:05', 'running', 7, 4, 0, 11],
+      ['Ženy', 'start 10:15', 'running', 6, 8, 0, 14],
+      ['Super ženy', 'start 10:15', 'running', 0, 4, 0, 4],
+      ['Muži do 40', 'start 10:15', 'running', 9, 2, 1, 12],
+      ['Muži nad 40', 'start 10:15', 'ready', 9, 0, 0, 9],
+      ['Štafety', 'start 11:30', 'waiting', 0, 0, 0, 8]
+    ];
+    var cats = raw.map(function (r) {
+      var tot = r[6], p = function (n) { return (n / tot * 100).toFixed(1) + '%'; };
+      var s = st[r[2]];
+      return {
+        name: r[0], sub: r[1] + ' · D + H', status: s[0],
+        badge: 'justify-self:start;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;' + s[1],
+        b1: 'width:' + p(r[3]) + ';background:#1b7a3a',
+        b2: 'width:' + p(r[4]) + ';background:#6aaef0',
+        b3: 'width:' + p(r[5]) + ';background:#c22a2a',
+        fin: r[3], total: tot,
+        canClose: r[2] === 'ready',
+        action: r[2] === 'closed' ? 'oficiální' : (r[2] === 'running' ? r[4] + ' na trati' : (r[2] === 'waiting' ? 'Hromadný start v appce' : ''))
+      };
+    });
+
+    var dev = [
+      ['Start', 'Jana K. · Pixel 7', 'ok', 'před 2 s', 'hodiny +0,1 s'],
+      ['T1 – konec plavání', 'Pavel R. · iPhone 13', 'ok', 'před 4 s', 'hodiny −0,3 s'],
+      ['Kolo – obrátka', 'Lenka S. · Galaxy A54', 'warn', 'bez signálu 6 min', '14 akcí ve frontě'],
+      ['T2 – konec kola', 'Ondra V. · iPhone 12', 'ok', 'před 1 s', 'hodiny +0,2 s'],
+      ['Běh – obrátka', 'Michaela D. · Pixel 6a', 'ok', 'před 9 s', 'hodiny +0,4 s'],
+      ['Cíl', 'Tomáš H. · iPhone 15', 'ok', 'před 1 s', 'hodiny 0,0 s'],
+      ['Cíl (záloha)', 'Klára P. · Galaxy S23', 'idle', 'neaktivní 18 min', 'poslední záznam 10:44']
+    ];
+    var devices = dev.map(function (d, i) {
+      var col = { ok: '#1b7a3a', warn: '#c77700', idle: '#8a929e' }[d[2]];
+      return {
+        cp: d[0], who: d[1], sync: d[3], meta: d[4],
+        dot: 'width:10px;height:10px;border-radius:50%;flex:none;background:' + col,
+        syncStyle: 'font-size:13px;font-weight:600;color:' + (d[2] === 'warn' ? '#8a5300' : (d[2] === 'ok' ? '#1b6a33' : '#5f6672')),
+        rowStyle: 'display:flex;gap:12px;align-items:center;padding:11px 20px;border-bottom:1px solid #eef0f2;' + (d[2] === 'warn' ? 'background:#fff8e6' : '')
+      };
+    });
+
+    var vals = [2, 4, 6, 9, 14, 11, 7, 5, 8, 12, 10, 4];
+    var labels = ['10:05', '', '10:15', '', '10:25', '', '10:35', '', '10:45', '', '10:55', ''];
+    var lab2 = ['10:05', '10:10', '10:15', '10:20', '10:25', '10:30', '10:35', '10:40', '10:45', '10:50', '10:55', '11:00'];
+    var hist = vals.map(function (v, i) {
+      return { label: lab2[i], title: lab2[i] + ' – ' + v + ' průchodů', style: 'flex:1;border-radius:4px 4px 0 0;height:' + (v / 15 * 100).toFixed(1) + '%;background:' + (i === vals.length - 1 ? '#08478a' : '#0b6bcb') };
+    });
+
+    var issues = [
+      ['Remíza', 'Muži nad 40 · č. 3 a č. 8', 'Shodný čas 33:41 na 4.–5. místě. Rozhodněte pořadí (fotofiniš / poznámka z cíle).', 'Rozhodnout', 'background:#eef5fd;color:#08478a'],
+      ['Anomálie', 'Ženy · č. 14', 'Čas na T2 (10:31:05) je dřív než na T1 (10:33:40). Pravděpodobně přehozený zápis.', 'Opravit', 'background:#fdecec;color:#a12121'],
+      ['Chybí', 'Muži do 40 · č. 21', 'Má čas v cíli, ale chybí průjezd obrátkou kola (zařízení offline).', 'Detail', 'background:#fff4d6;color:#7a5200']
+    ];
+    issues = issues.map(function (x) { return { kind: x[0], title: x[1], desc: x[2], btn: x[3], tag: 'flex:none;font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;' + x[4] }; });
+
+    var tag = { 'Korekce': 'background:#fff4d6;color:#7a5200', 'Uzavření': 'background:#e7f4ea;color:#145a29', 'Registrace': 'background:#eef5fd;color:#08478a', 'Zrušení': 'background:#fdecec;color:#a12121' };
+    var audit = [
+      ['10:58:12', 'Ředitel · Petr V.', 'Uzavření', 'Kategorie 11–12 uzavřena, výsledky oficiální (25 v cíli, 0 DNF).'],
+      ['10:51:40', 'Admin · admin@…', 'Korekce', 'Č. 9 (9–10 hoši D), Cíl: 10:12:07 → 10:11:57. Důvod: zpoždění zápisu podle videa.'],
+      ['10:49:03', 'Organizátor · Tomáš H.', 'Zrušení', 'Č. 12 (13–14 dívky H), Cíl: vrácená akce – omyl, klepnuto na špatné číslo.'],
+      ['10:12:30', 'Organizátor · Jana K.', 'Registrace', 'Nový závodník na místě: Muži do 40, domácí, č. 25.'],
+      ['10:05:00', 'Organizátor · Jana K.', 'Registrace', 'Hromadný start: 13–14 a 15–16 (33 závodníků).']
+    ].map(function (a) { return { t: a[0], who: a[1], kind: a[2], what: a[3], tag: 'justify-self:start;font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px;' + tag[a[2]] }; });
+    audit[4].kind = 'Start';
+    audit[4].tag = 'justify-self:start;font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px;background:#f0f1f4;color:#3d434c';
+
+    return { kpis: kpis, cats: cats, devices: devices, hist: hist, issues: issues, audit: audit };
+  }
+}
+</script>
+</body>
+</html>

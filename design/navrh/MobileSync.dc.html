@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Appka – bez signálu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0b6bcb}a:hover{color:#08529c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f6f8; color: #16202a; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; font-variant-numeric: tabular-nums">
+  <div style="height: 56px; flex: none; background: #ffffff; border-bottom: 1px solid #d5dbe1; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 4px">
+    <button aria-label="Zpět" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #16202a">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <div style="display: flex; flex-direction: column; flex: 1"><strong style="font-size: 17px">Synchronizace</strong><span style="font-size: 12px; color: #5f6b76">Kolo – obrátka</span></div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #7a5200; background: #fff4d6; padding: 5px 10px; border-radius: 999px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #c77700"></span>Offline · 14</span>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+    <section style="background: #fff4d6; border: 1px solid #f0d58c; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8a5300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M5 12.9a10 10 0 0 1 5.2-2.8"></path><path d="M19 12.9a10 10 0 0 0-2.3-1.6"></path><path d="M12 20h.01"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <strong style="font-size: 18px; color: #5c3b00">Bez signálu 6 min</strong>
+          <span style="font-size: 14px; color: #6b4a00">Zapisujte dál. Časy jsou uložené v telefonu a odešlou se samy, jakmile bude signál.</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="position: relative; height: 28px; border-radius: 6px; background: #ffffff">
+          <sc-for list="{{marks}}" as="m" hint-placeholder-count="14"><span style="{{m.style}}"></span></sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #6b4a00"><span>10:56 výpadek</span><span>10:58</span><span>11:00</span><span>teď</span></div>
+      </div>
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 15px">Hodiny telefonu</strong><span style="font-size: 13px; color: #1a7f37; font-weight: 700">+0,4 s</span></div>
+      <div style="position: relative; height: 24px">
+        <div style="position: absolute; left: 0; right: 0; top: 10px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #fde8e8 0 15%, #e3f4e8 15% 85%, #fde8e8 85% 100%)"></div>
+        <div style="position: absolute; left: 50%; top: 4px; width: 1px; height: 16px; background: #8a95a0"></div>
+        <div style="position: absolute; left: 60%; top: 3px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #1a7f37; border: 3px solid #ffffff; box-shadow: 0 0 0 1px #1a7f37; box-sizing: border-box"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5f6b76"><span>−2 s</span><span>server</span><span>+2 s</span></div>
+      <span style="font-size: 12px; color: #5f6b76">Ověřeno 10:55:48. Zapsané časy se o odchylku opraví automaticky.</span>
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden">
+      <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e6e9ec"><strong style="font-size: 15px">Čeká na odeslání</strong><span style="font-size: 13px; color: #5f6b76">14 akcí</span></div>
+      <sc-for list="{{queue}}" as="q" hint-placeholder-count="6">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #eef0f2">
+          <span style="{{q.dot}}"></span>
+          <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+            <span style="font-size: 14px; font-weight: 600">č. {{q.bib}} · {{q.cat}}</span>
+            <span style="font-size: 12px; color: #5f6b76">{{q.kind}}</span>
+          </span>
+          <span style="font-size: 14px; font-weight: 600">{{q.t}}</span>
+        </div>
+      </sc-for>
+      <div style="padding: 10px 16px; font-size: 13px; color: #5f6b76">… a dalších 8</div>
+    </section>
+
+    <button style="height: 52px; flex: none; border: 0; border-radius: 12px; background: #0b6bcb; color: #ffffff; font: inherit; font-size: 16px; font-weight: 700">Zkusit odeslat teď</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var pos = [6, 11, 14, 22, 30, 37, 41, 49, 55, 63, 70, 78, 86, 93];
+    var marks = pos.map(function (p, i) { return { style: 'position:absolute;top:6px;width:4px;height:16px;border-radius:2px;margin-left:-2px;left:' + p + '%;background:' + (i === 6 ? '#c2185b' : '#8a5300') }; });
+    var col = { 'M do 40': '#0b6bcb', 'Ženy': '#c2185b', 'Super Ž': '#ef6c00', 'M nad 40': '#2e7d32' };
+    var queue = [
+      ['21', 'M do 40', 'Průjezd zaznamenán', '11:02:31'],
+      ['44', 'Super Ž', 'Průjezd zaznamenán', '11:01:58'],
+      ['14', 'Ženy', 'Poznámka: „píchlá duše, pokračuje“', '11:00:40'],
+      ['25', 'M do 40', 'Průjezd zaznamenán', '11:00:07'],
+      ['22', 'Ženy', 'Vrácená akce (omyl)', '10:59:15'],
+      ['5', 'Ženy', 'Průjezd zaznamenán', '10:58:52']
+    ].map(function (q) { return { bib: q[0], cat: q[1], kind: q[2], t: q[3], dot: 'width:10px;height:10px;border-radius:50%;flex:none;background:' + col[q[1]] }; });
+    return { marks: marks, queue: queue };
+  }
+}
+</script>
+</body>
+</html>

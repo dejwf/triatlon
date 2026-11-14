@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Appka – průběžné výsledky</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0b6bcb}a:hover{color:#08529c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f6f8; color: #16202a; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; font-variant-numeric: tabular-nums">
+  <div style="height: 56px; flex: none; background: #ffffff; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 4px">
+    <button aria-label="Zpět" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #16202a">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <strong style="font-size: 17px; flex: 1">Výsledky</strong>
+    <span style="font-size: 12px; color: #5f6b76; padding-right: 8px">živě · před 2 s</span>
+  </div>
+  <div style="background: #ffffff; border-bottom: 1px solid #d5dbe1; padding: 4px 16px 12px; display: flex; flex-direction: column; gap: 10px; flex: none">
+    <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #5f6b76">Kategorie
+      <select style="height: 44px; border: 1px solid #d5dbe1; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 16px; font-weight: 700; color: #16202a; background: #ffffff"><option>Muži do 40 (12)</option><option>Ženy (14)</option></select>
+    </label>
+    <div style="display: flex; gap: 10px; font-size: 12px; color: #4a5560">
+      <span style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border-radius: 8px; background: #e3f4e8"><strong style="font-size: 17px; color: #145a29">9</strong>v cíli</span>
+      <span style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border-radius: 8px; background: #eef5fd"><strong style="font-size: 17px; color: #08478a">2</strong>na trati</span>
+      <span style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border-radius: 8px; background: #eef0f2"><strong style="font-size: 17px">1</strong>DNF</span>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+      <div style="{{r.card}}">
+        <span style="{{r.rankStyle}}">{{r.rank}}</span>
+        <span style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+          <span style="display: flex; gap: 6px; align-items: baseline; min-width: 0">
+            <span style="font-size: 13px; font-weight: 700; color: #5f6b76">{{r.bib}}</span>
+            <span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+            <span style="{{r.locStyle}}">{{r.loc}}</span>
+          </span>
+          <span style="{{r.track}}">
+            <span style="{{r.b0}}"></span><span style="{{r.b1}}"></span><span style="{{r.b2}}"></span>
+          </span>
+          <span style="font-size: 12px; color: #5f6b76">{{r.sub}}</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end">
+          <strong style="font-size: 16px">{{r.total}}</strong>
+          <span style="font-size: 12px; color: #5f6b76">{{r.gap}}</span>
+        </span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="flex: none; background: #ffffff; border-top: 1px solid #d5dbe1; padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 6px">
+    <button disabled style="height: 48px; border: 1px solid #d5dbe1; border-radius: 12px; background: #eef0f2; color: #6b7682; font: inherit; font-size: 15px; font-weight: 700">Uzavřít kategorii</button>
+    <span style="font-size: 12px; color: #5f6b76; text-align: center">Jen ředitel závodu · na trati jsou ještě 2 závodníci</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function fmt(s) { var m = Math.floor(s / 60), x = s % 60; return m + ':' + String(x).padStart(2, '0'); }
+    var cols = ['#0b6bcb', '#ef6c00', '#6a1b9a'];
+    var d = [
+      [12, 'Jan „Honza“ Novák', 'D', [412, 1342, 958], 'D 1.'],
+      [7, 'Petr Dvořák', 'H', [398, 1390, 941], 'H 1.'],
+      [3, 'Tomáš Svoboda', 'D', [455, 1310, 1001], 'D 2.'],
+      [21, 'Martin „Marty“ Černý', 'D', [430, 1402, 980], 'D 3.'],
+      [15, 'Lukáš Procházka', 'H', [470, 1385, 1012], 'H 2.'],
+      [9, 'Jakub Kučera', 'D', [445, 1450, 1003], 'D 4.'],
+      [2, 'Michal Pokorný', 'H', [462, 1440, null], 'Běží · T2 v 10:47:22'],
+      [25, 'Vojtěch Marek', 'D', [540, null, null], 'Na kole · T1 v 10:24:00'],
+      [6, 'Adam Pospíšil', 'D', [480, null, null], 'Nedokončil na kole']
+    ];
+    var leader = 2712, place = 0;
+    var rows = d.map(function (r, i) {
+      var done = r[3][2] != null, dnf = i === 8;
+      if (done) place++;
+      var w = function (k) { return r[3][k] == null ? 'width:0' : 'width:' + (r[3][k] / 3300 * 100).toFixed(1) + '%;background:' + cols[k]; };
+      var tot = done ? r[3][0] + r[3][1] + r[3][2] : null;
+      return {
+        rank: done ? place + '.' : (dnf ? 'DNF' : '–'),
+        rankStyle: 'width:34px;flex:none;font-weight:800;font-size:' + (done ? '18px' : '12px') + ';color:' + (dnf ? '#a12121' : '#16202a'),
+        bib: r[0], name: r[1], loc: r[2],
+        locStyle: 'flex:none;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;' + (r[2] === 'D' ? 'background:#eef5fd;color:#08478a' : 'background:#fff4d6;color:#7a5200'),
+        track: 'display:flex;height:6px;border-radius:3px;overflow:hidden;background:' + (done || dnf ? '#eef0f2' : 'repeating-linear-gradient(90deg,#dfe3e8 0 4px,#ffffff 4px 7px)'),
+        b0: w(0), b1: w(1), b2: w(2),
+        sub: done ? 'Pořadí v kategorii ' + r[4] : r[4],
+        total: done ? fmt(tot) : (dnf ? '' : 'na trati'),
+        gap: done && i > 0 ? '+' + fmt(tot - leader) : '',
+        card: 'display:flex;gap:10px;align-items:center;background:#ffffff;border:1px solid ' + (i === 0 ? '#9cc6f0' : '#e2e6ea') + ';border-radius:12px;padding:9px 12px;' + (dnf ? 'opacity:.7' : '')
+      };
+    });
+    return { rows: rows };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Kiosk – výsledky</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cb8f2}a:hover{color:#a9d0f7}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; box-sizing: border-box; background: #0e1114; color: #e9ecef; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; font-variant-numeric: tabular-nums">
+  <header style="height: 132px; box-sizing: border-box; padding: 28px 56px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="font-size: 22px; color: #9aa3ad; font-weight: 600; display: flex; gap: 16px; align-items: center">
+        Vlkančický triatlon 2027
+        <span style="display: inline-flex; align-items: center; gap: 8px; color: #ff8a8a; font-weight: 800; font-size: 18px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5c5c; animation: pulse 1.6s infinite"></span>ŽIVĚ</span>
+      </div>
+      <h1 style="margin: 0; font-size: 60px; font-weight: 900; letter-spacing: -0.02em; line-height: 1">Muži do 40</h1>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px; width: 520px">
+      <div style="font-size: 54px; font-weight: 800; line-height: 1">11:02:47</div>
+      <div style="font-size: 18px; color: #9aa3ad">Kategorie 1 / 11 · další <strong style="color: #e9ecef">Muži nad 40</strong> za 12 s</div>
+      <div style="width: 100%; height: 6px; border-radius: 3px; background: #252a30; overflow: hidden"><div style="width: 60%; height: 100%; background: #4c9be8"></div></div>
+    </div>
+  </header>
+
+  <div style="flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 620px; gap: 40px; padding: 24px 56px 24px">
+    <section aria-label="Pořadí" style="display: flex; flex-direction: column">
+      <div style="display: grid; grid-template-columns: 90px 100px minmax(0, 1fr) 380px 170px 150px; gap: 20px; padding: 0 24px 12px; font-size: 16px; font-weight: 700; color: #8a939d; text-transform: uppercase; letter-spacing: .06em">
+        <span>Poř.</span><span>Číslo</span><span>Závodník</span><span>Plavání · Kolo · Běh</span><span style="text-align: right">Čas</span><span style="text-align: right">Ztráta</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+          <div style="{{r.rowStyle}}">
+            <span style="{{r.rankStyle}}">{{r.rank}}</span>
+            <span style="font-size: 30px; font-weight: 700; color: #b8c0c8">{{r.bib}}</span>
+            <span style="display: flex; align-items: center; gap: 14px; min-width: 0">
+              <span style="font-size: 32px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+              <span style="{{r.locStyle}}">{{r.loc}}</span>
+            </span>
+            <span style="display: flex; height: 18px; border-radius: 5px; overflow: hidden; background: #1d2227">
+              <span style="{{r.b0}}"></span><span style="{{r.b1}}"></span><span style="{{r.b2}}"></span>
+            </span>
+            <span style="text-align: right; font-size: 36px; font-weight: 800">{{r.total}}</span>
+            <span style="text-align: right; font-size: 26px; color: #9aa3ad">{{r.gap}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <aside style="display: flex; flex-direction: column; gap: 20px">
+      <section style="background: #161a1f; border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 800">Právě v cíli</h2>
+        <sc-for list="{{feed}}" as="f" hint-placeholder-count="3">
+          <div style="{{f.style}}">
+            <span style="{{f.dot}}"></span>
+            <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+              <span style="font-size: 24px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.bib}} · {{f.name}}</span>
+              <span style="font-size: 17px; color: #9aa3ad">{{f.cat}} · {{f.place}}</span>
+            </span>
+            <span style="font-size: 26px; font-weight: 800">{{f.time}}</span>
+          </div>
+        </sc-for>
+      </section>
+
+      <section style="background: #161a1f; border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; flex: 1">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 800">Kde jsou závodníci</h2>
+        <div style="display: grid; grid-template-columns: 130px repeat(3, minmax(0, 1fr)) 56px; gap: 8px; font-size: 15px; color: #8a939d; font-weight: 700; text-transform: uppercase; letter-spacing: .05em">
+          <span></span><span style="text-align: center">Plavání</span><span style="text-align: center">Kolo</span><span style="text-align: center">Běh</span><span style="text-align: center">Cíl</span>
+        </div>
+        <sc-for list="{{track}}" as="t" hint-placeholder-count="4">
+          <div style="display: grid; grid-template-columns: 130px repeat(3, minmax(0, 1fr)) 56px; gap: 8px; align-items: center">
+            <span style="font-size: 19px; font-weight: 700">{{t.cat}}</span>
+            <sc-for list="{{t.cells}}" as="c" hint-placeholder-count="3">
+              <span style="{{c.style}}">{{c.n}}</span>
+            </sc-for>
+            <span style="text-align: center; font-size: 22px; font-weight: 800; color: #7fd69b">{{t.fin}}</span>
+          </div>
+        </sc-for>
+        <div style="font-size: 15px; color: #8a939d">Čísla = závodníci na úseku, sytější = víc lidí</div>
+      </section>
+
+      <section aria-label="Výsledky v mobilu" style="background: #ffffff; color: #0e1114; border-radius: 18px; padding: 20px; display: flex; gap: 22px; align-items: center">
+        <svg width="176" height="176" viewBox="-2 -2 33 33" role="img" aria-label="QR kód s odkazem na veřejnou výsledkovou tabuli" style="flex: none; display: block" shape-rendering="crispEdges"><path fill="#0e1114" d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM9 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM14 0h1v1h-1zM16 0h1v1h-1zM17 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM25 0h1v1h-1zM26 0h1v1h-1zM27 0h1v1h-1zM28 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM10 1h1v1h-1zM11 1h1v1h-1zM14 1h1v1h-1zM15 1h1v1h-1zM16 1h1v1h-1zM17 1h1v1h-1zM18 1h1v1h-1zM19 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM10 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM10 3h1v1h-1zM13 3h1v1h-1zM14 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM19 3h1v1h-1zM20 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM25 3h1v1h-1zM26 3h1v1h-1zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM10 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM15 4h1v1h-1zM18 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM10 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM17 5h1v1h-1zM18 5h1v1h-1zM19 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM25 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM9 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM17 7h1v1h-1zM18 7h1v1h-1zM19 7h1v1h-1zM20 7h1v1h-1zM0 8h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM15 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM24 8h1v1h-1zM27 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM9 9h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM16 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM25 9h1v1h-1zM28 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM28 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM5 11h1v1h-1zM7 11h1v1h-1zM9 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM15 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM19 11h1v1h-1zM24 11h1v1h-1zM27 11h1v1h-1zM1 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM10 12h1v1h-1zM12 12h1v1h-1zM16 12h1v1h-1zM17 12h1v1h-1zM20 12h1v1h-1zM21 12h1v1h-1zM22 12h1v1h-1zM25 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM13 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM22 13h1v1h-1zM25 13h1v1h-1zM28 13h1v1h-1zM1 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM9 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM17 14h1v1h-1zM18 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM28 14h1v1h-1zM2 15h1v1h-1zM3 15h1v1h-1zM4 15h1v1h-1zM7 15h1v1h-1zM8 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM0 16h1v1h-1zM1 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM9 16h1v1h-1zM10 16h1v1h-1zM14 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM19 16h1v1h-1zM21 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM25 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM2 17h1v1h-1zM3 17h1v1h-1zM7 17h1v1h-1zM8 17h1v1h-1zM9 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM14 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM25 17h1v1h-1zM26 17h1v1h-1zM28 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM9 18h1v1h-1zM10 18h1v1h-1zM13 18h1v1h-1zM16 18h1v1h-1zM17 18h1v1h-1zM18 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM27 18h1v1h-1zM28 18h1v1h-1zM1 19h1v1h-1zM3 19h1v1h-1zM5 19h1v1h-1zM8 19h1v1h-1zM10 19h1v1h-1zM11 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM19 19h1v1h-1zM20 19h1v1h-1zM22 19h1v1h-1zM23 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM8 21h1v1h-1zM10 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM16 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM24 21h1v1h-1zM26 21h1v1h-1zM27 21h1v1h-1zM28 21h1v1h-1zM0 22h1v1h-1zM1 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM11 22h1v1h-1zM14 22h1v1h-1zM17 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM27 22h1v1h-1zM28 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM11 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM14 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM20 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM27 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM9 24h1v1h-1zM10 24h1v1h-1zM14 24h1v1h-1zM17 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h1v1h-1zM3 25h1v1h-1zM4 25h1v1h-1zM6 25h1v1h-1zM10 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM17 25h1v1h-1zM18 25h1v1h-1zM19 25h1v1h-1zM20 25h1v1h-1zM24 25h1v1h-1zM26 25h1v1h-1zM27 25h1v1h-1zM28 25h1v1h-1zM0 26h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM14 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM21 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM10 27h1v1h-1zM11 27h1v1h-1zM12 27h1v1h-1zM13 27h1v1h-1zM15 27h1v1h-1zM17 27h1v1h-1zM19 27h1v1h-1zM20 27h1v1h-1zM21 27h1v1h-1zM22 27h1v1h-1zM23 27h1v1h-1zM24 27h1v1h-1zM27 27h1v1h-1zM0 28h1v1h-1zM1 28h1v1h-1zM2 28h1v1h-1zM3 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM9 28h1v1h-1zM10 28h1v1h-1zM11 28h1v1h-1zM13 28h1v1h-1zM14 28h1v1h-1zM15 28h1v1h-1zM17 28h1v1h-1zM20 28h1v1h-1zM21 28h1v1h-1zM22 28h1v1h-1zM23 28h1v1h-1zM24 28h1v1h-1zM25 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1z"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+          <strong style="font-size: 28px; font-weight: 900; line-height: 1.1">Výsledky<br>v mobilu</strong>
+          <span style="font-size: 18px; color: #4a525b">Naskenujte kód, nebo otevřete:</span>
+          <span style="font-size: 25px; font-weight: 800; color: #0b6bcb; word-break: break-all; line-height: 1.2">vysledky.example.cz</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer style="height: 64px; box-sizing: border-box; background: #161a1f; padding: 0 56px; display: flex; align-items: center; justify-content: space-between; font-size: 20px; color: #b8c0c8">
+    <span>Na trati <strong style="color: #e9ecef">38</strong> · v cíli <strong style="color: #e9ecef">119</strong> · uzavřené kategorie <strong style="color: #e9ecef">4 / 11</strong></span>
+    <span>Živé výsledky všech kategorií: <strong style="color: #e9ecef">vysledky.example.cz</strong></span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function fmt(s) { var m = Math.floor(s / 60), x = s % 60; return m + ':' + String(x).padStart(2, '0'); }
+    var cols = ['#4c9be8', '#ff9a3d', '#b67ae0'];
+    var d = [
+      [1, 12, 'Jan „Honza“ Novák', 'D', [412, 1342, 958]],
+      [2, 7, 'Petr Dvořák', 'H', [398, 1390, 941]],
+      [3, 3, 'Tomáš Svoboda', 'D', [455, 1310, 1001]],
+      [4, 21, 'Martin „Marty“ Černý', 'D', [430, 1402, 980]],
+      [5, 15, 'Lukáš Procházka', 'H', [470, 1385, 1012]],
+      [6, 9, 'Jakub Kučera', 'D', [445, 1450, 1003]],
+      [7, 4, 'Jméno nezveřejněno', 'H', [501, 1420, 1040]],
+      [8, 18, 'Filip Horák', 'D', [489, 1498, 1075]],
+      [9, 11, 'David Němec', 'D', [520, 1530, 1120]]
+    ];
+    var leader = 412 + 1342 + 958;
+    var medal = ['#f2c14e', '#c9d1d9', '#d89a6a'];
+    var rows = d.map(function (r, i) {
+      var tot = r[4][0] + r[4][1] + r[4][2];
+      var w = function (k) { return 'width:' + (r[4][k] / 3300 * 100).toFixed(2) + '%;background:' + cols[k]; };
+      return {
+        rank: r[0] + '.', bib: r[1], name: r[2], loc: r[3],
+        rankStyle: 'font-size:40px;font-weight:900;color:' + (i < 3 ? medal[i] : '#e9ecef'),
+        locStyle: 'flex:none;font-size:16px;font-weight:800;padding:3px 9px;border-radius:6px;' + (r[3] === 'D' ? 'background:#1c3550;color:#a9d0f7' : 'background:#4a3a12;color:#ffd77a'),
+        rowStyle: 'display:grid;grid-template-columns:90px 100px minmax(0,1fr) 380px 170px 150px;gap:20px;align-items:center;height:70px;padding:0 24px;border-radius:12px;background:' + (i === 0 ? '#1d2a38' : (i % 2 ? '#13171b' : '#171b20')),
+        b0: w(0), b1: w(1), b2: w(2),
+        total: fmt(tot), gap: i === 0 ? '' : '+' + fmt(tot - leader)
+      };
+    });
+    var catCol = { 'Muži do 40': '#4c9be8', 'Ženy': '#f06292', 'Muži nad 40': '#66bb6a', '13–14': '#ffa726' };
+    var feed = [
+      ['11', 'David Němec', 'Muži do 40', '9. místo', '52:50'],
+      ['31', 'Eva Malá', 'Ženy', '3. místo', '31:12'],
+      ['8', 'Karel Beneš', 'Muži nad 40', '5. místo', '33:41'],
+      ['14', 'Anna Krejčí', '13–14', '2. místo', '19:06'],
+      ['18', 'Filip Horák', 'Muži do 40', '8. místo', '51:02']
+    ].map(function (f, i) {
+      return {
+        bib: f[0], name: f[1], cat: f[2], place: f[3], time: f[4],
+        dot: 'width:14px;height:14px;border-radius:50%;flex:none;background:' + catCol[f[2]],
+        style: 'display:flex;align-items:center;gap:16px;padding:10px 0;' + (i ? 'border-top:1px solid #252a30' : '') + (i === 0 ? ';opacity:1' : ';opacity:' + (1 - i * 0.1))
+      };
+    });
+    var track = [['Muži do 40', [0, 1, 1], 9], ['Ženy', [0, 3, 5], 6], ['Super ženy', [1, 2, 1], 0], ['Muži nad 40', [0, 2, 2], 5], ['15–16', [0, 0, 4], 7]].map(function (t) {
+      return {
+        cat: t[0], fin: t[2],
+        cells: t[1].map(function (n) {
+          var a = n === 0 ? 0 : Math.min(1, 0.25 + n * 0.15);
+          return { n: n === 0 ? '·' : n, style: 'height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;background:rgba(76,155,232,' + a.toFixed(2) + ');color:' + (n === 0 ? '#4a525b' : '#ffffff') + ';' + (n === 0 ? 'background:#1d2227' : '') };
+        })
+      };
+    });
+    return { rows: rows, feed: feed.slice(0, 3), track: track.slice(0, 4) };
+  }
+}
+</script>
+</body>
+</html>

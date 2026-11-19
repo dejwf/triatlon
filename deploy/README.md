@@ -2,6 +2,7 @@
 
 Celý systém běží na jednom serveru přes Docker Compose. Stačí menší VPS v EU (2 vCPU, 2–4 GB RAM)
 u libovolného poskytovatele. Hosting zůstává přenositelný, protože jde jen o Docker image.
+Nasazení do Kubernetes (Helm chart) popisuje [`k8s/README.md`](k8s/README.md).
 
 | Služba     | Co dělá                                                                                 |
 | ---------- | --------------------------------------------------------------------------------------- |

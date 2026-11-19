@@ -1,0 +1,6 @@
+apiVersion: v2
+name: triatlon
+description: Vlkančický triatlon — API, web (administrace + veřejná tabule), Postgres, zálohy
+type: application
+version: 0.1.0
+appVersion: '0.1.0'

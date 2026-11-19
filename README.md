@@ -60,6 +60,7 @@ apps/web         React (Vite) — administrace a veřejná tabule
 apps/mobile      React Native (Expo) — appka pro organizátory, offline-first (SQLite)
 packages/shared  sdílené typy, validace (zod) a výpočet výsledků — stejně na serveru i v klientech
 deploy/          produkční Docker Compose (Postgres, API, Caddy s automatickým HTTPS, zálohy)
+                 a Kubernetes (Helm chart v deploy/helm, cookbook v deploy/k8s)
 ```
 
 Časy se ukládají jako append-only log akcí: záznam, zrušení, korekce, poznámka. Každá akce má
@@ -121,6 +122,7 @@ testy → image do ghcr.io → SSH na server → záloha → restart.
 - [`docs/diagramy.md`](docs/diagramy.md): diagramy architektury, toků v appce, synchronizace,
   výsledků a nasazení (Mermaid).
 - [`deploy/README.md`](deploy/README.md): provoz na serveru.
+- [`deploy/k8s/README.md`](deploy/k8s/README.md): nasazení do Kubernetes (Helm), cookbook pro další clustery.
 - [`apps/mobile/README.md`](apps/mobile/README.md): vývoj appky.
 
 ## Stav projektu

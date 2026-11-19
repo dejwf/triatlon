@@ -1,0 +1,29 @@
+# Homelab: microk8s (jeden uzel 192.168.0.250), jen domácí síť, HTTP, e-maily do Mailpitu.
+#   helm upgrade --install triatlon deploy/helm/triatlon -n triatlon \
+#     -f deploy/k8s/values-homelab.yaml --set image.tag=<tag>
+image:
+  registry: localhost:32000
+
+host: triatlon.homelab.local
+
+ingress:
+  className: public
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: 'off'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+
+api:
+  env:
+    MAIL_FROM: 'Vlkančický triatlon <noreply@homelab.local>'
+    SEED_ADMIN_EMAIL: 'admin@homelab.local'
+
+postgres:
+  storageClass: microk8s-hostpath
+
+backup:
+  storageClass: microk8s-hostpath
+
+mailpit:
+  enabled: true
+  host: mailpit.homelab.local

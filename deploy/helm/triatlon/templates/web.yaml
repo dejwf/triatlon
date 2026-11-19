@@ -1,0 +1,44 @@
+{{- $name := printf "%s-web" (include "triatlon.fullname" .) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "triatlon.selector" (dict "root" . "component" "web") | nindent 4 }}
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels: {{- include "triatlon.selector" (dict "root" . "component" "web") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "triatlon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        # Caddy jen se statickým webem na :80 — HTTPS a /api řeší ingress.
+        - name: web
+          image: {{ include "triatlon.image" (dict "root" . "name" "web") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SITE_ADDRESS
+              value: ':80'
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            periodSeconds: 10
+          resources: {{- toYaml .Values.web.resources | nindent 12 }}

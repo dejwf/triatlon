@@ -1,0 +1,60 @@
+{{- if and .Values.backup.enabled .Values.postgres.enabled }}
+{{- $name := printf "%s-backup" (include "triatlon.fullname" .) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep # zálohy přežijí `helm uninstall`
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.backup.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.size }}
+---
+# pg_dump (gzip) do PVC zálohy, starší než keepDays se mažou. Ruční záloha:
+#   kubectl create job --from=cronjob/{{ $name }} zaloha-$(date +%s)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: {{ .Values.postgres.image }}
+              env:
+                {{- include "triatlon.dbEnv" . | nindent 16 }}
+                - name: KEEP_DAYS
+                  value: {{ .Values.backup.keepDays | quote }}
+              command:
+                - sh
+                - -ec
+                - |
+                  f="/backups/triatlon-$(date +%Y%m%d-%H%M%S).sql.gz"
+                  pg_dump "$DATABASE_URL" --no-owner | gzip > "$f.tmp"
+                  mv "$f.tmp" "$f"
+                  echo "Záloha: $f ($(du -h "$f" | cut -f1))"
+                  find /backups -name 'triatlon-*.sql.gz' -mtime "+$KEEP_DAYS" -delete
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: {{ $name }}
+{{- end }}

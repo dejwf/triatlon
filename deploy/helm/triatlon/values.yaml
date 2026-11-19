@@ -1,0 +1,77 @@
+# Výchozí hodnoty chartu. Prostředí si je přepisuje vlastním souborem (viz values-homelab.yaml)
+# a postup je v deploy/k8s/README.md.
+
+image:
+  # Registry, odkud cluster tahá image triatlon-api a triatlon-web (deploy/k8s/build-push.sh).
+  registry: localhost:32000
+  # Tag = commit (výchozí výstup build-push.sh). Povinný — nasazuje se vždy konkrétní verze.
+  tag: ''
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Veřejná adresa webu. Z ní se skládá WEB_URL (odkazy v e-mailech) a host ingressu.
+host: triatlon.example.cz
+
+ingress:
+  enabled: true
+  className: ''
+  # Ingress-nginx: živé výsledky (SSE) nesmí být bufferované a spojení drží dlouho.
+  annotations: {}
+  tls:
+    enabled: false
+    # Vydání certifikátu přes cert-manager (ClusterIssuer musí v clusteru existovat).
+    clusterIssuer: ''
+    # Název Secretu s certifikátem (cert-manager ho vytvoří sám).
+    secretName: triatlon-tls
+
+# Secret s hesly — chart ho nevytváří, aby hesla nebyla ve values (viz README):
+#   AUTH_SECRET        podpis přihlášení (openssl rand -base64 48)
+#   POSTGRES_PASSWORD  heslo vestavěného Postgresu (openssl rand -hex 24 — bez znaků, které by
+#                      rozbily URL)
+#   DATABASE_URL       jen s externí databází (postgres.enabled=false)
+#   SMTP_USER, SMTP_PASSWORD  volitelné
+existingSecret: triatlon
+
+api:
+  replicas: 1 # živý kanál (SSE) drží stav v paměti procesu → jedna replika
+  env:
+    SMTP_HOST: ''
+    SMTP_PORT: '587'
+    MAIL_FROM: 'Vlkančický triatlon <noreply@example.cz>'
+    SEED_ADMIN_EMAIL: ''
+    CORS_ORIGINS: ''
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { memory: 512Mi }
+
+web:
+  replicas: 1
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+
+postgres:
+  # false = externí / spravovaná databáze, URL v Secretu pod klíčem DATABASE_URL.
+  enabled: true
+  image: postgres:17
+  user: triatlon
+  database: triatlon
+  storageClass: '' # '' = výchozí StorageClass clusteru
+  size: 5Gi
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+backup:
+  enabled: true
+  # Den závodu: '*/15 * * * *'
+  schedule: '30 3 * * *'
+  keepDays: 14
+  storageClass: ''
+  size: 5Gi
+
+# Testovací SMTP: e-maily se nedoručí, přečtou se ve webovém UI Mailpitu.
+mailpit:
+  enabled: false
+  image: axllent/mailpit:v1.27
+  host: '' # host ingressu pro UI, např. mailpit.homelab.local

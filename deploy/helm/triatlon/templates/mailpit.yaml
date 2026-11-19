@@ -1,0 +1,58 @@
+{{- if .Values.mailpit.enabled }}
+{{- $name := printf "%s-mailpit" (include "triatlon.fullname" .) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "triatlon.selector" (dict "root" . "component" "mailpit") | nindent 4 }}
+  ports:
+    - { name: smtp, port: 1025, targetPort: 1025 }
+    - { name: http, port: 8025, targetPort: 8025 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{- include "triatlon.selector" (dict "root" . "component" "mailpit") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "triatlon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: mailpit
+    spec:
+      containers:
+        - name: mailpit
+          image: {{ .Values.mailpit.image }}
+          ports:
+            - containerPort: 1025
+            - containerPort: 8025
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+{{- if and .Values.ingress.enabled .Values.mailpit.host }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}
+  labels: {{- include "triatlon.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.mailpit.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: {{ $name }}, port: { number: 8025 } }
+{{- end }}
+{{- end }}

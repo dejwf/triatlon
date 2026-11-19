@@ -1,0 +1,12 @@
+Vlkančický triatlon {{ .Values.image.tag }} → {{ include "triatlon.webUrl" . }}
+
+  Administrace:     {{ include "triatlon.webUrl" . }}/zavody
+  Veřejná tabule:   {{ include "triatlon.webUrl" . }}/vysledky
+  Appka (EXPO_PUBLIC_API_URL): {{ include "triatlon.webUrl" . }}/api
+{{- if and .Values.mailpit.enabled .Values.mailpit.host }}
+  E-maily (Mailpit): http://{{ .Values.mailpit.host }}
+{{- end }}
+
+Stav:   kubectl -n {{ .Release.Namespace }} get pods
+První admin (jen poprvé):
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "triatlon.fullname" . }}-api -- node dist/seed.js

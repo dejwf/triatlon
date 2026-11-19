@@ -6,3 +6,5 @@ CLAUDE.md
 design/navrh/
 # Zásady UI spravuje Claude desktop — needitovat ani neformátovat.
 design_claude.md
+# Helm šablony nejsou validní YAML.
+deploy/helm/*/templates/

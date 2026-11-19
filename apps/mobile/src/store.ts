@@ -62,6 +62,8 @@ export interface AppState {
     syncing: boolean;
     lastError?: string;
     lastSyncAt?: string;
+    /** Od kdy je telefon bez spojení (pro „Bez signálu N min“). */
+    offlineSince?: string;
   };
 }
 
@@ -97,7 +99,10 @@ function set(patch: Partial<AppState>): void {
 }
 
 function setNet(patch: Partial<AppState['net']>): void {
-  set({ net: { ...state.net, ...patch } });
+  const net = { ...state.net, ...patch };
+  if (net.online === false) net.offlineSince ??= new Date().toISOString();
+  if (net.online === true) net.offlineSince = undefined;
+  set({ net });
 }
 
 export function useApp<T>(select: (s: AppState) => T): T {
@@ -414,19 +419,48 @@ export function sync(): Promise<void> {
 // ---------- smyčka na pozadí ----------
 
 let activeRace: string | null = null;
+let activeCheckpoint: string | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
 
-export function setActiveRace(raceId: string | null): void {
+/** Závod (a checkpoint), na jehož obrazovce obsluha je — obnovuje se a hlásí se v heartbeatu. */
+export function setActiveRace(raceId: string | null, checkpointId: string | null = null): void {
   activeRace = raceId;
+  activeCheckpoint = raceId ? checkpointId : null;
+  if (raceId) void heartbeat(raceId).catch(() => undefined);
 }
 
-/** Každých 5 s: odeslat frontu; každých 15 s obnovit aktivní závod; hodiny každých 5 min. */
+const APP_VERSION = Constants.expoConfig?.version ?? null;
+
+/**
+ * Stav telefonu pro přehled v administraci: checkpoint, odchylka hodin a délka fronty
+ * (design_claude.md 4.3). Bez signálu selže — server pak telefon ukáže jako offline.
+ */
+export async function heartbeat(raceId: string): Promise<void> {
+  const pending = state.outbox.filter(
+    (i) => i.raceId === raceId && i.state === 'pending' && i.userId === state.session?.user.id,
+  );
+  await api('POST', `/races/${raceId}/devices/heartbeat`, {
+    deviceId: state.deviceId,
+    checkpointId: activeCheckpoint,
+    clockOffsetMs: state.clock?.offsetMs ?? null,
+    clockCheckedAt: state.clock?.at ?? null,
+    pending: pending.length,
+    oldestPendingAt: pending[0]?.createdAt ?? null,
+    appVersion: APP_VERSION,
+  });
+}
+
+/**
+ * Každých 5 s: odeslat frontu; každých 15 s obnovit aktivní závod a poslat heartbeat;
+ * hodiny každých 5 min.
+ */
 export function startLoop(): () => void {
   timer ??= setInterval(() => {
     if (!state.session) return;
     void sync();
     if (activeRace && Date.now() - (lastFetch.get(activeRace) ?? 0) > 15_000) {
       void refreshRace(activeRace).catch(() => undefined);
+      void heartbeat(activeRace).catch(() => undefined);
     }
     const clockAge = state.clock ? Date.now() - Date.parse(state.clock.at) : Infinity;
     if (clockAge > 5 * 60_000) void syncClock();

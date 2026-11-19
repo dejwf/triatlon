@@ -29,7 +29,15 @@ export const C = {
   danger: '#c62828',
   dangerBg: '#fde8e8',
   done: '#e6e9ec',
+  doneText: '#8a95a0',
+  info: '#08478a',
+  infoBg: '#eef5fd',
+  line: '#eef0f2',
 };
+
+/** Disciplíny (design_claude.md 2): plavání, kolo, běh — stejné jako na webu. */
+export const LEG_COLORS = ['#0b6bcb', '#ef6c00', '#6a1b9a'];
+export const legColor = (i: number) => LEG_COLORS[i % LEG_COLORS.length]!;
 
 /** Barvy kategorií — rychlé rozlišení stejných čísel v různých kategoriích. */
 const CATEGORY_COLORS = [
@@ -166,36 +174,114 @@ export function Loading() {
   return <ActivityIndicator style={{ margin: 24 }} color={C.primary} />;
 }
 
-/** Odznak v hlavičce: stav spojení a fronty. Klepnutím detail synchronizace. */
+/** Odznak v hlavičce: „Online · 0“ / „Offline · 14“ (počet akcí ve frontě). Klepnutím detail. */
 export function SyncBadge() {
   const outbox = useApp((st) => st.outbox);
   const net = useApp((st) => st.net);
   const userId = useApp((st) => st.session?.user.id);
   const pending = outbox.filter((i) => i.state === 'pending' && i.userId === userId).length;
   const problems = outbox.filter((i) => i.state === 'rejected' || i.warning).length;
+  const offline = net.online === false;
 
-  let label = net.online === false ? '○ offline' : '● online';
-  let color = net.online === false ? C.muted : C.ok;
-  let bg = net.online === false ? C.done : C.okBg;
-  if (pending) {
-    label = `⏳ ${pending} čeká`;
-    color = C.warn;
-    bg = C.warnBg;
-  }
+  let label = `${offline ? 'Offline' : 'Online'} · ${pending}`;
+  let color = offline ? C.warn : pending ? C.warn : C.ok;
+  let bg = offline ? C.warnBg : pending ? C.warnBg : C.okBg;
   if (problems) {
-    label = `⚠ ${problems}${pending ? ` · ⏳ ${pending}` : ''}`;
+    label = `⚠ ${problems} · ${pending}`;
     color = C.danger;
     bg = C.dangerBg;
   }
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Stav synchronizace"
+      accessibilityLabel={`Stav synchronizace: ${offline ? 'offline' : 'online'}, ${pending} ve frontě`}
       onPress={() => router.push('/sync')}
-      style={[s.badge, { backgroundColor: bg }]}
+      style={[s.badge, s.row, { backgroundColor: bg, gap: 6 }]}
+      hitSlop={8}
     >
-      <Text style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Text>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+      <Text style={{ color, fontWeight: '700', fontSize: 13 }}>{label}</Text>
     </Pressable>
+  );
+}
+
+/** Hlavička obrazovky na dva řádky (název + podtitul), např. checkpoint a závod. */
+export function HeaderTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <View>
+      <Text style={{ fontSize: 17, fontWeight: '700', color: C.text }} numberOfLines={1}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+export function LocBadge({ local }: { local: boolean }) {
+  return (
+    <Text
+      accessibilityLabel={local ? 'domácí' : 'host'}
+      style={{
+        fontSize: 11,
+        fontWeight: '700',
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 5,
+        overflow: 'hidden',
+        backgroundColor: local ? C.infoBg : C.warnBg,
+        color: local ? C.info : '#7a5200',
+      }}
+    >
+      {local ? 'D' : 'H'}
+    </Text>
+  );
+}
+
+/**
+ * Mini pruh rozložení času (plavání → kolo → běh) ve společném měřítku kategorie.
+ * Na trati je zbytek šrafovaný (odhad), u DNF jen hotové úseky.
+ */
+export function MiniBar({
+  legs,
+  scale,
+  rest,
+}: {
+  legs: (number | null)[];
+  scale: number;
+  rest: number | null;
+}) {
+  const w = (ms: number) => `${Math.min(100, (ms / scale) * 100)}%` as const;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+        backgroundColor: C.line,
+      }}
+    >
+      {legs.map((ms, i) =>
+        ms == null ? null : <View key={i} style={{ width: w(ms), backgroundColor: legColor(i) }} />,
+      )}
+      {rest != null && rest > 0 && (
+        <View
+          style={{
+            width: w(rest),
+            borderWidth: 1,
+            borderStyle: 'dashed',
+            borderColor: C.muted,
+            borderLeftWidth: 0,
+            borderTopRightRadius: 3,
+            borderBottomRightRadius: 3,
+          }}
+        />
+      )}
+    </View>
   );
 }
 

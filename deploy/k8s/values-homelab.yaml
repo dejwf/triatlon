@@ -4,7 +4,9 @@
 image:
   registry: localhost:32000
 
-host: triatlon.homelab.local
+# sslip.io: veřejné DNS, které jméno přeloží na IP v něm (192.168.0.250) → bez vlastní DNS,
+# funguje i na telefonech v domácí Wi-Fi.
+host: triatlon.192-168-0-250.sslip.io
 
 ingress:
   className: public
@@ -26,4 +28,4 @@ backup:
 
 mailpit:
   enabled: true
-  host: mailpit.homelab.local
+  host: mailpit.192-168-0-250.sslip.io

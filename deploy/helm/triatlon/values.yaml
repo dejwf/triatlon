@@ -74,4 +74,4 @@ backup:
 mailpit:
   enabled: false
   image: axllent/mailpit:v1.27
-  host: '' # host ingressu pro UI, např. mailpit.homelab.local
+  host: '' # host ingressu pro UI, např. mailpit.192-168-0-250.sslip.io

@@ -72,17 +72,19 @@ Cluster `microk8s` (jeden uzel `192.168.0.250`, ingress-nginx třídy `public`, 
    ```sh
    k exec deploy/triatlon-api -- node dist/seed.js
    ```
-6. **DNS:** `triatlon.homelab.local` a `mailpit.homelab.local` musí ukazovat na `192.168.0.250`.
-   Pro celou síť je přidejte do Pi-hole (_Local DNS → DNS Records_). Pro jeden počítač stačí
-   `/etc/hosts`:
+6. **DNS netřeba:** jména `triatlon.192-168-0-250.sslip.io` a `mailpit.192-168-0-250.sslip.io`
+   přeloží veřejná služba [sslip.io](https://sslip.io) na IP uvedenou ve jméně. Funguje v celé
+   domácí síti včetně telefonů. Kdyby router blokoval DNS odpovědi s privátní IP („DNS rebind
+   protection“, `dig +short triatlon.192-168-0-250.sslip.io` nic nevrátí), povolte na něm výjimku
+   pro `sslip.io`, nebo na počítači přidejte do `/etc/hosts`:
    ```
-   192.168.0.250 triatlon.homelab.local mailpit.homelab.local
+   192.168.0.250 triatlon.192-168-0-250.sslip.io mailpit.192-168-0-250.sslip.io
    ```
-7. Otevřete `http://triatlon.homelab.local/zavody` a přihlaste se e-mailem admina. Kód z e-mailu
-   najdete na `http://mailpit.homelab.local`.
+7. Otevřete `http://triatlon.192-168-0-250.sslip.io/zavody` a přihlaste se e-mailem admina. Kód z
+   e-mailu najdete na `http://mailpit.192-168-0-250.sslip.io`.
 
-Appka se připojí přes `EXPO_PUBLIC_API_URL=http://triatlon.homelab.local/api`. Telefon musí být
-v domácí Wi-Fi a používat Pi-hole jako DNS.
+Appka se připojí přes `EXPO_PUBLIC_API_URL=http://triatlon.192-168-0-250.sslip.io/api`. Telefon
+musí být v domácí Wi-Fi.
 
 ## Aktualizace
 

@@ -71,6 +71,7 @@ model User {
   sessions    Session[]
   timeEvents  TimeEvent[]
   directing   RaceDirector[]
+  devices     DeviceStatus[]
 }
 
 /// Jednorázový token pro přihlášení magic linkem (v DB jen hash) + 6místný kód pro mobil.
@@ -118,6 +119,7 @@ model Race {
   participants Participant[]
   assignments  Assignment[]
   directors    RaceDirector[]
+  devices      DeviceStatus[]
 
   @@unique([name, year])
 }
@@ -172,6 +174,7 @@ model Checkpoint {
   categories   CategoryCheckpoint[]
   assignments  Assignment[]
   timeEvents   TimeEvent[]
+  devices      DeviceStatus[]
 
   @@unique([raceId, seq])
 }
@@ -264,6 +267,26 @@ model TimeEvent {
 
   @@index([participantId, checkpointId])
   @@index([checkpointId])
+}
+
+/// Poslední stav telefonu v závodě (heartbeat z appky): online, hodiny, délka offline fronty.
+model DeviceStatus {
+  raceId          String      @db.Uuid
+  race            Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  deviceId        String
+  userId          String      @db.Uuid
+  user            User        @relation(fields: [userId], references: [id])
+  checkpointId    String?     @db.Uuid
+  checkpoint      Checkpoint? @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
+  /// O kolik ms jdou hodiny serveru napřed oproti telefonu.
+  clockOffsetMs   Int?
+  clockCheckedAt  DateTime?   @db.Timestamptz(3)
+  pending         Int         @default(0)
+  oldestPendingAt DateTime?   @db.Timestamptz(3)
+  appVersion      String?
+  lastSeenAt      DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@id([raceId, deviceId])
 }
 
 /// Ruční určení pořadí adminem (nerozhodný/sporný výsledek), vždy s důvodem.

@@ -28,7 +28,8 @@ export function ResultsTab() {
   const results = useResults(raceId);
   const live = useRaceStream(raceId);
   const [params, setParams] = useSearchParams();
-  const [selected, setSelected] = useState<string | null>(null);
+  // `?zavodnik=` otevře detail závodníka (odkaz z přehledu „Ke kontrole“).
+  const [selected, setSelected] = useState<string | null>(() => params.get('zavodnik'));
 
   if (results.error) return <ErrorBox error={results.error} />;
   if (!race.data || !results.data) return <Loading />;

@@ -8,6 +8,8 @@ import { TokenService } from './auth/token.service';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { HealthController } from './health.controller';
 import { MailService } from './mail/mail.service';
+import { OverviewController } from './overview/overview.controller';
+import { OverviewService } from './overview/overview.service';
 import { ParticipantsController } from './participants/participants.controller';
 import { ParticipantsService } from './participants/participants.service';
 import { PrismaService } from './prisma.service';
@@ -31,6 +33,7 @@ import { UsersService } from './users/users.service';
     UsersController,
     ResultsController,
     PublicController,
+    OverviewController,
   ],
   providers: [
     PrismaService,
@@ -45,6 +48,7 @@ import { UsersService } from './users/users.service';
     TimeEventsService,
     ResultsService,
     PublicService,
+    OverviewService,
     // Všechny endpointy vyžadují přihlášení, pokud nejsou označené @Public().
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },

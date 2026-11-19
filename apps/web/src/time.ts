@@ -17,12 +17,21 @@ export function toTimeInput(iso: string): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${Math.floor(d.getMilliseconds() / 100)}`;
 }
 
-/** Čas dne zadaný adminem (v den závodu, místní čas) → ISO. Null = neplatný vstup. */
-export function parseClock(raceDate: string, value: string): string | null {
+/** Hodnota pro <input type="date">: „YYYY-MM-DD“ v místním čase. */
+export function toDateInput(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** Den („YYYY-MM-DD“) a čas dne zadané adminem (místní čas) → ISO. Null = neplatný vstup. */
+export function parseClock(day: string, value: string): string | null {
   const m = /^(\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d{1,3}))?)?$/.exec(value.trim());
   if (!m) return null;
   const [, h, min, s = '0', frac = '0'] = m;
-  const [y, mo, d] = raceDate.split('-').map(Number);
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!dm) return null;
+  const [y, mo, d] = dm.slice(1).map(Number);
   const date = new Date(
     y!,
     mo! - 1,

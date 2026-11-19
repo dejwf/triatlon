@@ -11,7 +11,7 @@ import {
 } from '@triatlon/shared';
 import { http } from '../../api';
 import { keys, useHistory, useIsAdmin } from '../../hooks';
-import { formatClock, parseClock, toTimeInput } from '../../time';
+import { formatClock, parseClock, toDateInput, toTimeInput } from '../../time';
 import { ErrorBox, Loading } from '../../ui';
 
 const TYPE_LABEL: Record<TimeEventInput['type'], string> = {
@@ -168,6 +168,9 @@ function Correction({
   split?: ResultSplit;
 }) {
   const [mode, setMode] = useState<'edit' | 'cancel' | null>(null);
+  // Oprava zůstává ve dni původního záznamu, doplnění začíná dnem závodu (závod přes půlnoc,
+  // časy zapsané v jiný den než datum závodu).
+  const [day, setDay] = useState(split ? toDateInput(split.ts) : race.date);
   const [time, setTime] = useState(split ? toTimeInput(split.ts) : '');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -207,9 +210,9 @@ function Correction({
       });
       return;
     }
-    const ts = parseClock(race.date, time);
+    const ts = parseClock(day, time);
     if (!ts) {
-      setError('Zadejte čas ve formátu HH:MM:SS (případně s desetinami).');
+      setError('Zadejte den a čas ve formátu HH:MM:SS (případně s desetinami).');
       return;
     }
     send.mutate({ ...base, type: 'admin_correction', ts, refEventId: split?.recordId });
@@ -232,6 +235,15 @@ function Correction({
 
   return (
     <form className="row" onSubmit={submit}>
+      {mode === 'edit' && (
+        <input
+          type="date"
+          required
+          aria-label="Den"
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+        />
+      )}
       {mode === 'edit' && (
         <input
           type="time"

@@ -4,3 +4,5 @@ coverage
 CLAUDE.md
 **/generated/**
 design/navrh/
+# Zásady UI spravuje Claude desktop — needitovat ani neformátovat.
+design_claude.md

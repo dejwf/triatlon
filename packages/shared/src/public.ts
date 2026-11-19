@@ -3,7 +3,7 @@
  * (CLAUDE.md, sekce 6): jméno (pokud ho závodník nezakázal), kategorie, startovní číslo, časy.
  * Žádné ročníky, interní ID záznamů, poznámky ani kdo co zapsal.
  */
-import type { Locality, RaceStatus } from './domain.js';
+import type { CheckpointKind, Distances, Locality, RaceStatus } from './domain.js';
 import type { ResultState } from './results.js';
 
 export interface PublicRaceSummaryDto {
@@ -27,6 +27,8 @@ export interface PublicResultRowDto {
   categoryRank: number | null;
   categoryTied: boolean;
   totalMs: number | null;
+  /** Start závodníka (ISO) — absolutní časy průjezdů a doběhu („právě v cíli“). */
+  startedAt: string | null;
   /** Čas od startu na každém checkpointu kategorie (null = ještě neprojel). */
   splitsMs: (number | null)[];
   disciplinesMs: (number | null)[];
@@ -37,6 +39,10 @@ export interface PublicCategoryDto {
   name: string;
   /** Kategorie, ze kterých tabulka vzniká (u skupiny domácí + hosté obě). */
   categoryIds: string[];
+  /** Domácí / hosté u jednotlivé kategorie; null u společné tabulky (skupiny). */
+  locality: Locality | null;
+  /** Délky tratí v metrech (plavání / kolo / běh), pokud jsou zadané. */
+  distances: Distances | null;
   startedAt: string | null;
   /** Výsledky jsou oficiální (kategorie uzavřená ředitelem závodu; u skupiny všechny její). */
   closedAt: string | null;
@@ -48,7 +54,13 @@ export interface PublicCategoryDto {
 export interface PublicRaceResultsDto {
   race: PublicRaceSummaryDto;
   generatedAt: string;
-  checkpoints: { id: string; name: string }[];
+  checkpoints: {
+    id: string;
+    name: string;
+    /** `transition` = hranice disciplíny (start, konec úseku, cíl), `intermediate` = mezičas. */
+    kind: CheckpointKind;
+    disciplineId: string | null;
+  }[];
   disciplines: { id: string; name: string }[];
   /** Výchozí pohled: věková skupina + pohlaví, domácí a hosté v jedné tabulce se společným pořadím. */
   groups: PublicCategoryDto[];

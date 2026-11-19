@@ -9,3 +9,4 @@ export * from './events.js';
 export * from './mobile.js';
 export * from './public.js';
 export * from './names.js';
+export * from './board.js';

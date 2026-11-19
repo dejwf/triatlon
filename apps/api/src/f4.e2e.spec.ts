@@ -263,6 +263,12 @@ describe('F4: uzavření kategorie, veřejná tabule, GDPR', () => {
     // V kategorii domácích zůstává vlastní pořadí.
     const local = board.categories.find((c) => c.id === categoryId)!;
     assert.equal(local.rows[0]!.rank, 1);
+    // Údaje pro vizualizace (pohled Domácí / Hosté, „právě v cíli“, vývoj pořadí).
+    assert.equal(group.locality, null);
+    assert.equal(local.locality, 'local');
+    assert.equal(group.rows[0]!.startedAt, '2026-07-17T08:10:00.000Z');
+    const transitions = board.checkpoints.filter((c) => c.kind === 'transition');
+    assert.deepEqual([transitions[0]!.id, transitions.at(-1)!.id], [start, finish]);
   });
 
   it('přezdívka a oslovení: formální Jméno "Nick" Příjmení, neformální rozlišení při shodě', async () => {

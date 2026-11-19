@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, type OnModuleDestroy } from '@nestjs/common';
 import {
   AgeGroups,
+  Distances,
   GENDER_LABEL,
   groupName,
   rankCombined,
@@ -89,12 +90,16 @@ export class PublicService implements OnModuleDestroy {
       }),
       this.prisma.category.findMany({
         where: { raceId },
-        select: { id: true, ageGroupLabel: true, gender: true, locality: true },
+        select: { id: true, ageGroupLabel: true, gender: true, locality: true, distances: true },
       }),
     ]);
     const hiddenIds = new Set(hidden.map((p) => p.id));
     const ageGroups = AgeGroups.parse(race.ageGroups);
     const metaById = new Map(meta.map((c) => [c.id, c]));
+    const distancesOf = (categoryId: string): Distances | null => {
+      const parsed = Distances.safeParse(metaById.get(categoryId)?.distances);
+      return parsed.success ? parsed.data : null;
+    };
     const seqOf = new Map(race.checkpoints.map((c) => [c.id, c.seq]));
     const shown = results.categories.filter((c) => c.counts.registered > 0);
     // Pořadí v kategorii — ve společné tabulce domácích a hostů se zobrazí vedle společného.
@@ -111,6 +116,7 @@ export class PublicService implements OnModuleDestroy {
       name: string,
       cats: CategoryResultsDto[],
       rows: Row[],
+      locality: 'local' | 'guest' | null,
     ): PublicCategoryDto => {
       const checkpointIds = [...new Set(cats.flatMap((c) => c.checkpointIds))].sort(
         (a, b) => seqOf.get(a)! - seqOf.get(b)!,
@@ -121,6 +127,8 @@ export class PublicService implements OnModuleDestroy {
         id,
         name,
         categoryIds: cats.map((c) => c.categoryId),
+        locality,
+        distances: distancesOf(cats[0]!.categoryId),
         startedAt: starts.sort()[0] ?? null,
         closedAt: closed.every((t) => t) ? (closed as string[]).sort().at(-1)! : null,
         counts: {
@@ -141,6 +149,7 @@ export class PublicService implements OnModuleDestroy {
             categoryRank: inCategory.get(r.participantId)?.rank ?? null,
             categoryTied: inCategory.get(r.participantId)?.tied ?? false,
             totalMs: r.totalMs,
+            startedAt: r.startTs,
             splitsMs: checkpointIds.map((id) => splits.get(id) ?? null),
             disciplinesMs: r.disciplines.map((d) => d.ms),
           };
@@ -148,7 +157,9 @@ export class PublicService implements OnModuleDestroy {
       };
     };
 
-    const categories = shown.map((c) => toDto(c.categoryId, c.name, [c], withLocality(c)));
+    const categories = shown.map((c) =>
+      toDto(c.categoryId, c.name, [c], withLocality(c), metaById.get(c.categoryId)!.locality),
+    );
 
     // Výchozí pohled: domácí + hosté téže věkové skupiny a pohlaví v jedné tabulce.
     const grouped = new Map<string, CategoryResultsDto[]>();
@@ -172,7 +183,7 @@ export class PublicService implements OnModuleDestroy {
       const name = group
         ? groupName(group, m.gender)
         : `${m.ageGroupLabel} ${GENDER_LABEL[m.gender]}`;
-      return toDto(key, name, cats, rows);
+      return toDto(key, name, cats, rows, null);
     });
 
     return {
@@ -184,7 +195,12 @@ export class PublicService implements OnModuleDestroy {
         status: race.status,
       },
       generatedAt: results.generatedAt,
-      checkpoints: race.checkpoints.map((c) => ({ id: c.id, name: c.name })),
+      checkpoints: race.checkpoints.map((c) => ({
+        id: c.id,
+        name: c.name,
+        kind: c.kind,
+        disciplineId: c.disciplineId,
+      })),
       disciplines: race.disciplines.map((d) => ({ id: d.id, name: d.name })),
       groups,
       categories,

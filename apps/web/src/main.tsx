@@ -5,6 +5,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import './index.css';
 import { Layout } from './Layout';
 import { PrivacyPage, PublicBoard, PublicLayout, PublicRaces } from './public/PublicPages';
+import { KioskBoard } from './public/Kiosk';
 import { RacesPage } from './pages/RacesPage';
 import { UsersPage } from './pages/UsersPage';
 import { RaceLayout } from './pages/race/RaceLayout';
@@ -22,7 +23,8 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
-  // Veřejná část — bez přihlášení.
+  // Veřejná část — bez přihlášení. Kiosk / TV je na celou obrazovku, bez navigace.
+  { path: 'vysledky/:raceId/kiosk', element: <KioskBoard /> },
   {
     element: <PublicLayout />,
     children: [

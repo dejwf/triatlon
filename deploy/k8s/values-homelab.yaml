@@ -1,4 +1,6 @@
-# Homelab: microk8s (jeden uzel 192.168.0.250), jen domácí síť, HTTP, e-maily do Mailpitu.
+# Homelab: microk8s (jeden uzel 192.168.0.250) za CGNAT. Ven přes Cloudflare Tunnel
+# (deploy/k8s/cloudflared.yaml) na https://demo-triatlon.zitko.org, v domácí síti i přes sslip.io.
+# E-maily přes SMTP Webglobe (schránka a heslo v Secretu `triatlon`: SMTP_USER, SMTP_PASSWORD).
 #   helm upgrade --install triatlon deploy/helm/triatlon -n triatlon \
 #     -f deploy/k8s/values-homelab.yaml --set image.tag=<tag>
 image:
@@ -7,9 +9,12 @@ image:
 # sslip.io: veřejné DNS, které jméno přeloží na IP v něm (192.168.0.250) → bez vlastní DNS,
 # funguje i na telefonech v domácí Wi-Fi.
 host: triatlon.192-168-0-250.sslip.io
+# HTTPS končí u Cloudflare, do clusteru jde HTTP → WEB_URL (odkazy v e-mailech) nastavit ručně.
+webUrl: https://demo-triatlon.zitko.org
 
 ingress:
   className: public
+  extraHosts: [demo-triatlon.zitko.org]
   annotations:
     nginx.ingress.kubernetes.io/proxy-buffering: 'off'
     nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
@@ -17,15 +22,12 @@ ingress:
 
 api:
   env:
-    MAIL_FROM: 'Vlkančický triatlon <noreply@homelab.local>'
-    SEED_ADMIN_EMAIL: 'admin@homelab.local'
+    SMTP_HOST: smtp.zitko.org
+    SMTP_PORT: '587'
+    MAIL_FROM: 'Vlkančický triatlon <noreply@zitko.org>'
 
 postgres:
   storageClass: microk8s-hostpath
 
 backup:
   storageClass: microk8s-hostpath
-
-mailpit:
-  enabled: true
-  host: mailpit.192-168-0-250.sslip.io

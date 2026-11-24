@@ -11,10 +11,15 @@ imagePullSecrets: []
 
 # Veřejná adresa webu. Z ní se skládá WEB_URL (odkazy v e-mailech) a host ingressu.
 host: triatlon.example.cz
+# Přepíše WEB_URL, když se web otevírá jinou adresou, než je `host` (např. přes Cloudflare
+# Tunnel: HTTPS končí u Cloudflare, do clusteru jde HTTP). Bez lomítka na konci.
+webUrl: ''
 
 ingress:
   enabled: true
   className: ''
+  # Další jména, na která ingress odpovídá stejně jako na `host` (např. veřejné jméno z tunelu).
+  extraHosts: []
   # Ingress-nginx: živé výsledky (SSE) nesmí být bufferované a spojení drží dlouho.
   annotations: {}
   tls:

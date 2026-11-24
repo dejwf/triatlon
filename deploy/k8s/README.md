@@ -37,7 +37,9 @@ h() { helm --kube-context "$KCTX" -n "$NS" "$@"; }
 ## Homelab: microk8s (první nasazení)
 
 Cluster `microk8s` (jeden uzel `192.168.0.250`, ingress-nginx třídy `public`, StorageClass
-`microk8s-hostpath`). Přístup jen z domácí sítě přes HTTP, e-maily do Mailpitu. Hodnoty jsou v
+`microk8s-hostpath`), síť za CGNAT. Zvenku přes Cloudflare Tunnel na
+`https://demo-triatlon.zitko.org` (viz [Veřejný přístup přes Cloudflare Tunnel](#veřejný-přístup-přes-cloudflare-tunnel)),
+v domácí síti i přes HTTP na sslip.io. E-maily přes SMTP Webglobe. Hodnoty jsou v
 [`values-homelab.yaml`](values-homelab.yaml).
 
 1. **Registry v clusteru** (jednou). Microk8s tahá z `localhost:32000` bez TLS už ve výchozím
@@ -57,6 +59,13 @@ Cluster `microk8s` (jeden uzel `192.168.0.250`, ingress-nginx třídy `public`, 
      --from-literal=AUTH_SECRET="$(openssl rand -base64 48)" \
      --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 24)"
    ```
+   Údaje ke schránce pro odesílání e-mailů přidejte do téhož Secretu (heslo se nezobrazí ani
+   neuloží do historie shellu):
+   ```sh
+   read -rs SMTP_PASSWORD
+   k patch secret triatlon --type merge -p "{\"stringData\":{\"SMTP_USER\":\"noreply@zitko.org\",\"SMTP_PASSWORD\":\"$SMTP_PASSWORD\"}}"
+   unset SMTP_PASSWORD
+   ```
    Heslo databáze musí mít jen znaky bezpečné v URL (proto `-hex`). Secret si zazálohujte mimo
    cluster: bez `POSTGRES_PASSWORD` se ke stávajícím datům nepřipojíte a nový `AUTH_SECRET`
    odhlásí všechny uživatele.
@@ -72,19 +81,76 @@ Cluster `microk8s` (jeden uzel `192.168.0.250`, ingress-nginx třídy `public`, 
    ```sh
    k exec deploy/triatlon-api -- node dist/seed.js
    ```
-6. **DNS netřeba:** jména `triatlon.192-168-0-250.sslip.io` a `mailpit.192-168-0-250.sslip.io`
-   přeloží veřejná služba [sslip.io](https://sslip.io) na IP uvedenou ve jméně. Funguje v celé
+6. **DNS v domácí síti netřeba:** jméno `triatlon.192-168-0-250.sslip.io` přeloží veřejná služba [sslip.io](https://sslip.io) na IP uvedenou ve jméně. Funguje v celé
    domácí síti včetně telefonů. Kdyby router blokoval DNS odpovědi s privátní IP („DNS rebind
    protection“, `dig +short triatlon.192-168-0-250.sslip.io` nic nevrátí), povolte na něm výjimku
    pro `sslip.io`, nebo na počítači přidejte do `/etc/hosts`:
    ```
-   192.168.0.250 triatlon.192-168-0-250.sslip.io mailpit.192-168-0-250.sslip.io
+   192.168.0.250 triatlon.192-168-0-250.sslip.io
    ```
-7. Otevřete `http://triatlon.192-168-0-250.sslip.io/zavody` a přihlaste se e-mailem admina. Kód z
-   e-mailu najdete na `http://mailpit.192-168-0-250.sslip.io`.
+7. Otevřete `https://demo-triatlon.zitko.org/zavody` (nebo v domácí síti
+   `http://triatlon.192-168-0-250.sslip.io/zavody`) a přihlaste se e-mailem admina.
 
-Appka se připojí přes `EXPO_PUBLIC_API_URL=http://triatlon.192-168-0-250.sslip.io/api`. Telefon
-musí být v domácí Wi-Fi.
+Appka: `EXPO_PUBLIC_API_URL=https://demo-triatlon.zitko.org/api` (odkudkoli, HTTPS projde i
+release buildem), v domácí síti případně `http://triatlon.192-168-0-250.sslip.io/api`.
+
+## Veřejný přístup přes Cloudflare Tunnel
+
+Pro cluster bez veřejné IPv4 (CGNAT) nebo bez otevřených portů. `cloudflared` v clusteru drží jen
+odchozí spojení do Cloudflare, HTTPS končí u Cloudflare (bezplatný Universal SSL) a do clusteru
+jde HTTP. Doména musí mít DNS v Cloudflare.
+
+1. **Tunel:** Cloudflare dashboard → Zero Trust → Networks → Tunnels → _Create a tunnel_ →
+   Cloudflared. Zkopírujte token (z instalačního příkazu) a uložte ho do Secretu. Token **nikdy**
+   nepatří do souborů ani do gitu:
+   ```sh
+   kubectl --context "$KCTX" create namespace cloudflared
+   read -rs TUNNEL_TOKEN
+   kubectl --context "$KCTX" -n cloudflared create secret generic cloudflared-token \
+     --from-literal=token="$TUNNEL_TOKEN"
+   unset TUNNEL_TOKEN
+   ```
+2. **Cíl pro tunel:** cloudflared posílá provoz na ingress controller, ne přímo na Service:
+   ingress už dělí `/api` a `/`, vypíná bufferování živých výsledků a nastavuje limit velikosti
+   uploadu. Microk8s spouští ingress-nginx bez Service, proto ji přidejte (jinde použijte
+   existující Service controlleru):
+   ```sh
+   kubectl --context "$KCTX" apply -f deploy/k8s/ingress-service.yaml
+   ```
+3. **cloudflared** (2 repliky, readiness `/ready` na portu 2000):
+   ```sh
+   kubectl --context "$KCTX" apply -f deploy/k8s/cloudflared.yaml
+   kubectl --context "$KCTX" -n cloudflared rollout status deploy/cloudflared
+   ```
+   Tunel v dashboardu přejde do stavu _Healthy_.
+4. **Public hostname** v tunelu: subdoména `demo-triatlon`, doména `zitko.org`, typ **HTTP**, URL
+   `ingress-nginx.ingress.svc.cluster.local:80`. Cloudflare sám vytvoří proxovaný CNAME (přebije
+   případný wildcard `*`, ostatní záznamy se nemění).
+5. **Values:** veřejné jméno do `ingress.extraHosts` (ingress podle hlavičky Host pozná, kam
+   poslat provoz) a `webUrl: https://<jméno>` (odkazy v e-mailech), pak `helm upgrade`.
+6. V Cloudflare zapněte _SSL/TLS → Edge Certificates → Always Use HTTPS_.
+
+Poznámky:
+
+- Bezplatný Universal SSL pokrývá jen **první úroveň** pod doménou (`demo-triatlon.zitko.org`
+  ano, `demo.triatlon.zitko.org` ne).
+- Cloudflare ukončí spojení po 100 s bez dat. Živé výsledky (SSE) posílají každých 25 s ping,
+  takže vydrží.
+- Kontrola: `curl https://demo-triatlon.zitko.org/api/health`,
+  `kubectl --context "$KCTX" -n cloudflared logs deploy/cloudflared` (_Registered tunnel connection_).
+
+## E-maily (SMTP)
+
+Přihlašovací kódy chodí e-mailem. Testovací varianta je Mailpit v clusteru (`mailpit.enabled: true`
+a `mailpit.host`): e-maily se nedoručí, jen se zobrazí v jeho UI. Pro skutečný provoz:
+
+- `api.env.SMTP_HOST`, `SMTP_PORT` (`'587'` = STARTTLS, `'465'` = TLS), `MAIL_FROM` (adresa
+  schránky, ze které se odesílá),
+- do Secretu `SMTP_USER` a `SMTP_PASSWORD` (viz krok 3 homelabu),
+- doména odesílatele potřebuje **SPF, DKIM a DMARC**, jinak kódy padají do spamu.
+
+Homelab používá poštu Webglobe pro `zitko.org`: `smtp.zitko.org:587`, schránka
+`noreply@zitko.org`.
 
 ## Aktualizace
 
@@ -171,7 +237,8 @@ Pro každé prostředí založte vlastní values soubor podle `values-homelab.ya
 | HTTPS              | `ingress.tls.enabled`, `ingress.tls.clusterIssuer` | cert-manager s ClusterIssuerem (níže). Bez cert-manageru: Secret s certifikátem pod `ingress.tls.secretName`.                                |
 | Úložiště           | `postgres.storageClass`, `backup.storageClass`     | `''` = výchozí StorageClass. k3s: `local-path`, cloud: `standard` / `gp3` / `managed-csi`.                                                   |
 | Databáze           | `postgres.enabled: false`                          | spravovaný Postgres. Do Secretu přidejte `DATABASE_URL`. Zálohy CronJobem se pak nevytvoří, řeší je poskytovatel.                            |
-| E-maily            | `mailpit.enabled: false`, `api.env.SMTP_*`         | `SMTP_HOST`, `SMTP_PORT: '587'`, `MAIL_FROM`; do Secretu `SMTP_USER` a `SMTP_PASSWORD`. Doména odesílatele potřebuje SPF, DKIM a DMARC.      |
+| E-maily            | `mailpit.enabled: false`, `api.env.SMTP_*`         | viz [E-maily (SMTP)](#e-maily-smtp)                                                                                                          |
+| Bez veřejné IP     | `ingress.extraHosts`, `webUrl`                     | [Cloudflare Tunnel](#veřejný-přístup-přes-cloudflare-tunnel)                                                                                 |
 | Architektura       | `PLATFORM` v `build-push.sh`                       | ARM uzly: `linux/arm64`                                                                                                                      |
 
 **Veřejný přístup s HTTPS (Let's Encrypt přes cert-manager):**

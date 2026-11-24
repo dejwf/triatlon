@@ -1,0 +1,61 @@
+# Cloudflare Tunnel: veřejný přístup do clusteru za CGNAT, jen odchozí spojení, žádné otevřené
+# porty. Tunel je spravovaný v Cloudflare dashboardu (Zero Trust → Networks → Tunnels), tam se
+# nastavují i public hostnames. Token tunelu je v Secretu, který se zakládá ručně a NIKDY nepatří
+# do souborů ani do gitu:
+#   kubectl create namespace cloudflared
+#   kubectl -n cloudflared create secret generic cloudflared-token --from-literal=token=<token>
+#   kubectl apply -f deploy/k8s/cloudflared.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflared
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  # Dvě repliky = dvě nezávislá připojení tunelu; při restartu jedné tunel běží dál.
+  replicas: 2
+  selector:
+    matchLabels: { app: cloudflared }
+  template:
+    metadata:
+      labels: { app: cloudflared }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.10.7
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef: { name: cloudflared-token, key: token }
+          ports:
+            - name: metrics
+              containerPort: 2000
+          # /ready = 200, jakmile má replika aktivní spojení s Cloudflare.
+          readinessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }

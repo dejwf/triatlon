@@ -1,0 +1,16 @@
+# Microk8s spouští ingress-nginx jako DaemonSet s hostPort 80/443 a bez Service. Tahle ClusterIP
+# Service dá controlleru stálou adresu uvnitř clusteru pro cloudflared:
+#   http://ingress-nginx.ingress.svc.cluster.local:80
+# (na jiném clusteru použijte existující Service ingress controlleru).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx
+  namespace: ingress
+spec:
+  selector:
+    name: nginx-ingress-microk8s
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

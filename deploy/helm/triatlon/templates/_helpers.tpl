@@ -25,7 +25,11 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "triatlon.webUrl" -}}
+{{- if .Values.webUrl -}}
+{{- .Values.webUrl -}}
+{{- else -}}
 {{- printf "%s://%s" (ternary "https" "http" .Values.ingress.tls.enabled) .Values.host -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "triatlon.secret" -}}

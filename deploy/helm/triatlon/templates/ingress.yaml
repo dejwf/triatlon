@@ -22,7 +22,8 @@ spec:
       secretName: {{ .Values.ingress.tls.secretName }}
   {{- end }}
   rules:
-    - host: {{ .Values.host | quote }}
+    {{- range prepend .Values.ingress.extraHosts .Values.host }}
+    - host: {{ . | quote }}
       http:
         paths:
           - path: /api
@@ -33,4 +34,5 @@ spec:
             pathType: Prefix
             backend:
               service: { name: {{ $full }}-web, port: { number: 80 } }
+    {{- end }}
 {{- end }}

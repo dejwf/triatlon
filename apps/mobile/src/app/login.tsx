@@ -62,7 +62,7 @@ export default function Login() {
             </>
           ) : (
             <>
-              <Muted>Kód jsme poslali na {email}. Platí 15 minut.</Muted>
+              <Muted>Kód jsme poslali na {email}. Platí 30 minut.</Muted>
               <Field
                 label="Kód z e-mailu"
                 value={code}

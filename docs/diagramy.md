@@ -129,7 +129,7 @@ sequenceDiagram
   O->>App: zadá e-mail
   App->>API: POST /auth/request
   API-->>App: 202 (vždy — neprozradí, zda účet existuje)
-  API->>Mail: odkaz (web) + 6místný kód (appka), platnost 15 min
+  API->>Mail: odkaz (web) + 6místný kód (appka), platnost 30 min
   alt web
     O->>App: klikne na odkaz
     App->>API: POST /auth/verify {token}

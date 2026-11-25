@@ -31,7 +31,7 @@ export const config = {
 
 export const AUTH = {
   /** Platnost magic linku / kódu. */
-  loginTokenTtlMs: 15 * 60 * 1000,
+  loginTokenTtlMs: 30 * 60 * 1000, // pošta (Webglobe) občas chodí se zpožděním
   /** Max. neúspěšných pokusů o zadání kódu na jeden token. */
   maxCodeAttempts: 5,
   /** Max. vyžádaných přihlašovacích e-mailů na uživatele za okno loginTokenTtlMs. */
